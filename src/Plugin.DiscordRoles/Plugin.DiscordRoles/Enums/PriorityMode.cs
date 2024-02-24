@@ -1,8 +1,7 @@
-﻿namespace DiscordRolesPlugin.Enums
+﻿namespace DiscordRolesPlugin.Enums;
+
+public enum PriorityMode : byte
 {
-    public enum PriorityMode : byte
-    {
-        Highest,
-        HighestAndBelow
-    }
+    Highest,
+    HighestAndBelow
 }

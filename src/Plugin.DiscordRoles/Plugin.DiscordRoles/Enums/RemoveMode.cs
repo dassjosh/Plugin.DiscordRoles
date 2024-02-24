@@ -1,8 +1,7 @@
-﻿namespace DiscordRolesPlugin.Enums
+﻿namespace DiscordRolesPlugin.Enums;
+
+public enum RemoveMode : byte
 {
-    public enum RemoveMode : byte
-    {
-        Remove,
-        Keep
-    }
+    Remove,
+    Keep
 }

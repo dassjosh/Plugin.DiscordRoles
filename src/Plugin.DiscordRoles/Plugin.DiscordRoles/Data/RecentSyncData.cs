@@ -3,23 +3,23 @@ using DiscordRolesPlugin.Plugins;
 using Oxide.Ext.Discord.Entities;
 using Oxide.Plugins;
 
-namespace DiscordRolesPlugin.Data
-{
-    public class RecentSyncData
-    {
-        private readonly string _playerId;
-        private readonly Hash<string, int> _removedGroupCount = new Hash<string, int>();
-        private readonly Hash<Snowflake, int> _removedRoleCount = new Hash<Snowflake, int>();
-        private readonly ConflictSettings _settings;
+namespace DiscordRolesPlugin.Data;
 
-        public RecentSyncData(ConflictSettings settings, string playerId)
-        {
+public class RecentSyncData
+{
+    private readonly string _playerId;
+    private readonly Hash<string, int> _removedGroupCount = new Hash<string, int>();
+    private readonly Hash<Snowflake, int> _removedRoleCount = new Hash<Snowflake, int>();
+    private readonly ConflictSettings _settings;
+
+    public RecentSyncData(ConflictSettings settings, string playerId)
+    {
             _settings = settings;
             _playerId = playerId;
         }
 
-        public void OnGroupRemoved(string group)
-        {
+    public void OnGroupRemoved(string group)
+    {
             int count = _removedGroupCount[group];
             count += 1;
             _removedGroupCount[group] = count;
@@ -29,8 +29,8 @@ namespace DiscordRolesPlugin.Data
             }
         }
         
-        public void OnRoleRemoved(Snowflake role)
-        {
+    public void OnRoleRemoved(Snowflake role)
+    {
             int count = _removedRoleCount[role];
             count += 1;
             _removedRoleCount[role] = count;
@@ -39,5 +39,4 @@ namespace DiscordRolesPlugin.Data
                 DiscordRoles.Instance.Data.GetOrCreatePlayerData(_playerId).OnRoleSyncConflict(role);
             }
         }
-    }
 }

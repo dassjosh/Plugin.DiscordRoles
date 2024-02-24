@@ -1,9 +1,8 @@
-﻿namespace DiscordRolesPlugin.Enums
+﻿namespace DiscordRolesPlugin.Enums;
+
+public enum SyncMode : byte
 {
-    public enum SyncMode : byte
-    {
-        Server,
-        Discord,
-        Bidirectional
-    }
+    Server,
+    Discord,
+    Bidirectional
 }

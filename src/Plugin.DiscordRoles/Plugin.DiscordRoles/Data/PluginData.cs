@@ -1,22 +1,22 @@
 ﻿using Newtonsoft.Json;
 using Oxide.Plugins;
 
-namespace DiscordRolesPlugin.Data
+namespace DiscordRolesPlugin.Data;
+
+public class PluginData
 {
-    public class PluginData
+    public Hash<string, PlayerData> PlayerData = new Hash<string, PlayerData>();
+
+    [JsonIgnore]
+    public bool HasChanged { get; private set; }
+
+    public PlayerData GetPlayerData(string playerId)
     {
-        public Hash<string, PlayerData> PlayerData = new Hash<string, PlayerData>();
-
-        [JsonIgnore]
-        public bool HasChanged { get; private set; }
-
-        public PlayerData GetPlayerData(string playerId)
-        {
             return PlayerData[playerId];
         }
 
-        public PlayerData GetOrCreatePlayerData(string playerId)
-        {
+    public PlayerData GetOrCreatePlayerData(string playerId)
+    {
             PlayerData data = GetPlayerData(playerId);
             if (data == null)
             {
@@ -28,20 +28,19 @@ namespace DiscordRolesPlugin.Data
             return data;
         }
 
-        public void Cleanup(string playerId)
-        {
+    public void Cleanup(string playerId)
+    {
             PlayerData.Remove(playerId);
             OnDataChanged();
         }
 
-        public void OnDataChanged()
-        {
+    public void OnDataChanged()
+    {
             HasChanged = true;
         }
 
-        public void OnSaved()
-        {
+    public void OnSaved()
+    {
             HasChanged = false;
         }
-    }
 }

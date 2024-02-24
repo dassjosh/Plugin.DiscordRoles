@@ -1,37 +1,36 @@
 ﻿using DiscordRolesPlugin.Enums;
 using Newtonsoft.Json;
 using Oxide.Ext.Discord.Entities;
-using Oxide.Ext.Discord.Entities.Permissions;
 
-namespace DiscordRolesPlugin.Configuration.SyncConfig
+namespace DiscordRolesPlugin.Configuration.SyncConfig;
+
+public abstract class BaseSyncSettings
 {
-    public abstract class BaseSyncSettings
-    {
-        [JsonProperty(PropertyName = "Server Group Name", Order = 3)]
-        public string GroupName { get; set; }
+    [JsonProperty(PropertyName = "Server Group Name", Order = 3)]
+    public string GroupName { get; set; }
 
-        [JsonProperty(PropertyName = "Discord Role ID", Order = 4)]
-        public Snowflake RoleId { get; set; }
+    [JsonProperty(PropertyName = "Discord Role ID", Order = 4)]
+    public Snowflake RoleId { get; set; }
 
-        [JsonIgnore]
-        public DiscordRole Role { get; set; }
+    [JsonIgnore]
+    public DiscordRole Role { get; set; }
         
-        protected BaseSyncSettings() { }
+    protected BaseSyncSettings() { }
 
-        protected BaseSyncSettings(string groupName, Snowflake roleId)
-        {
+    protected BaseSyncSettings(string groupName, Snowflake roleId)
+    {
             GroupName = groupName;
             RoleId = roleId;
         }
 
-        protected BaseSyncSettings(BaseSyncSettings settings)
-        {
+    protected BaseSyncSettings(BaseSyncSettings settings)
+    {
             GroupName = settings?.GroupName ?? "Group";
             RoleId = settings?.RoleId ?? default(Snowflake);
         }
         
-        public string GetInfoString(SyncMode mode)
-        {
+    public string GetInfoString(SyncMode mode)
+    {
             switch (mode)
             {
                 case SyncMode.Server:
@@ -44,5 +43,4 @@ namespace DiscordRolesPlugin.Configuration.SyncConfig
 
             return null;
         }
-    }
 }

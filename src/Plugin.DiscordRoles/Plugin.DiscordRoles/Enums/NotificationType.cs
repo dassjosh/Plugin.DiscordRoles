@@ -1,10 +1,9 @@
-﻿namespace DiscordRolesPlugin.Enums
+﻿namespace DiscordRolesPlugin.Enums;
+
+public enum NotificationType
 {
-    public enum NotificationType
-    {
-        GroupAdded,
-        GroupRemoved,
-        RoleAdded,
-        RoleRemoved
-    }
+    GroupAdded,
+    GroupRemoved,
+    RoleAdded,
+    RoleRemoved
 }

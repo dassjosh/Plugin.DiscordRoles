@@ -1,14 +1,13 @@
-﻿namespace DiscordRolesPlugin.Enums
+﻿namespace DiscordRolesPlugin.Enums;
+
+public enum SyncEvent : byte
 {
-    public enum SyncEvent : byte
-    {
-        None,
-        PluginLoaded,
-        PlayerConnected,
-        ServerGroupChanged,
-        DiscordRoleChanged,
-        DiscordNicknameChanged,
-        PlayerLinkedChanged,
-        DiscordServerJoinLeave
-    }
+    None,
+    PluginLoaded,
+    PlayerConnected,
+    ServerGroupChanged,
+    DiscordRoleChanged,
+    DiscordNicknameChanged,
+    PlayerLinkedChanged,
+    DiscordServerJoinLeave
 }

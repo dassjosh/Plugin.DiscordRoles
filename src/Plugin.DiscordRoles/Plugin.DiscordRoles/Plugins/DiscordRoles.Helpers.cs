@@ -4,69 +4,68 @@ using Oxide.Core;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Ext.Discord.Logging;
 
-namespace DiscordRolesPlugin.Plugins
+namespace DiscordRolesPlugin.Plugins;
+
+public partial class DiscordRoles
 {
-    public partial class DiscordRoles
+    public string GetPlayerName(IPlayer player)
     {
-        public string GetPlayerName(IPlayer player)
+        string playerName = player.Name;
+        if (_config.Nickname.UseAntiSpam && AntiSpam != null && AntiSpam.IsLoaded)
         {
-            string playerName = player.Name;
-            if (_config.Nickname.UseAntiSpam && AntiSpam != null && AntiSpam.IsLoaded)
+            playerName = AntiSpam.Call<string>("GetClearName", player);
+            if (string.IsNullOrEmpty(playerName))
             {
-                playerName = AntiSpam.Call<string>("GetClearName", player);
-                if (string.IsNullOrEmpty(playerName))
-                {
-                    Logger.Warning("AntiSpam returned an empty string for '{0}'", player.Name);
-                    playerName = player.Name;
-                }
-                else if (!playerName.Equals(player.Name))
-                {
-                    Logger.Debug("Nickname '{0}' was filtered by AntiSpam to '{1}'", player.Name, playerName);
-                }
+                Logger.Warning("AntiSpam returned an empty string for '{0}'", player.Name);
+                playerName = player.Name;
             }
+            else if (!playerName.Equals(player.Name))
+            {
+                Logger.Debug("Nickname '{0}' was filtered by AntiSpam to '{1}'", player.Name, playerName);
+            }
+        }
             
-            if (_config.Nickname.SyncClanTag && Clans != null && Clans.IsLoaded)
+        if (_config.Nickname.SyncClanTag && Clans != null && Clans.IsLoaded)
+        {
+            string tag = Clans?.Call<string>("GetClanOf", player.Id);
+            if (!string.IsNullOrEmpty(tag))
             {
-                string tag = Clans?.Call<string>("GetClanOf", player.Id);
-                if (!string.IsNullOrEmpty(tag))
-                {
-                    playerName = Lang(LangKeys.ClanTag, player, tag, playerName);
-                }
+                playerName = Lang(LangKeys.ClanTag, player, tag, playerName);
             }
-
-            if (playerName.Length > 32)
-            {
-                playerName = playerName.Substring(0, 32);
-            }
-            
-            return playerName;
         }
 
-        public RecentSyncData GetRecentSync(string playerId)
+        if (playerName.Length > 32)
         {
-            RecentSyncData data = _recentSync[playerId];
-            if (data == null)
-            {
-                data = new RecentSyncData(_config.ConflictSettings, playerId);
-                _recentSync[playerId] = data;
-            }
+            playerName = playerName.Substring(0, 32);
+        }
+            
+        return playerName;
+    }
 
-            return data;
+    public RecentSyncData GetRecentSync(string playerId)
+    {
+        RecentSyncData data = _recentSync[playerId];
+        if (data == null)
+        {
+            data = new RecentSyncData(_config.ConflictSettings, playerId);
+            _recentSync[playerId] = data;
         }
 
-        public void SaveData(bool force = false)
+        return data;
+    }
+
+    public void SaveData(bool force = false)
+    {
+        if (Data == null)
         {
-            if (Data == null)
-            {
-                return;
-            }
-            
-            if(!Data.HasChanged || !force)
-            {
-                return;
-            }
-            
-            Interface.Oxide.DataFileSystem.WriteObject(Name, Data);
+            return;
         }
+            
+        if(!Data.HasChanged || !force)
+        {
+            return;
+        }
+            
+        Interface.Oxide.DataFileSystem.WriteObject(Name, Data);
     }
 }

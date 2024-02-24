@@ -1,11 +1,10 @@
 ﻿using DiscordRolesPlugin.Configuration.Notifications;
 
-namespace DiscordRolesPlugin.Interfaces
+namespace DiscordRolesPlugin.Interfaces;
+
+public interface INotificationSettings
 {
-    public interface INotificationSettings
-    {
-        ServerNotificationSettings ServerNotifications { get; }
+    ServerNotificationSettings ServerNotifications { get; }
         
-        PlayerNotificationSettings PlayerNotifications { get; }
-    }
+    PlayerNotificationSettings PlayerNotifications { get; }
 }

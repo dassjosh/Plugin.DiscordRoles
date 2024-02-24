@@ -4,36 +4,16 @@ using Oxide.Core;
 using Oxide.Core.Libraries;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
-using Oxide.Ext.Discord;
 using Oxide.Ext.Discord.Attributes;
-using Oxide.Ext.Discord.Attributes.ApplicationCommands;
-using Oxide.Ext.Discord.Builders.ApplicationCommands;
-using Oxide.Ext.Discord.Builders.Interactions;
-using Oxide.Ext.Discord.Builders.Interactions.AutoComplete;
+using Oxide.Ext.Discord.Builders;
 using Oxide.Ext.Discord.Cache;
-using Oxide.Ext.Discord.Cache.Entities;
 using Oxide.Ext.Discord.Clients;
 using Oxide.Ext.Discord.Connections;
 using Oxide.Ext.Discord.Constants;
 using Oxide.Ext.Discord.Entities;
-using Oxide.Ext.Discord.Entities.Api;
-using Oxide.Ext.Discord.Entities.Applications;
-using Oxide.Ext.Discord.Entities.Channels;
-using Oxide.Ext.Discord.Entities.Gateway;
-using Oxide.Ext.Discord.Entities.Gateway.Events;
-using Oxide.Ext.Discord.Entities.Guilds;
-using Oxide.Ext.Discord.Entities.Interactions;
-using Oxide.Ext.Discord.Entities.Interactions.ApplicationCommands;
-using Oxide.Ext.Discord.Entities.Permissions;
-using Oxide.Ext.Discord.Entities.Users;
 using Oxide.Ext.Discord.Extensions;
 using Oxide.Ext.Discord.Interfaces;
-using Oxide.Ext.Discord.Libraries.Linking;
-using Oxide.Ext.Discord.Libraries.Placeholders;
-using Oxide.Ext.Discord.Libraries.Templates;
-using Oxide.Ext.Discord.Libraries.Templates.Commands;
-using Oxide.Ext.Discord.Libraries.Templates.Embeds;
-using Oxide.Ext.Discord.Libraries.Templates.Messages;
+using Oxide.Ext.Discord.Libraries;
 using Oxide.Ext.Discord.Logging;
 using System;
 using System.Collections.Generic;
@@ -41,7 +21,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 
-//DiscordRoles created with PluginMerge v(1.0.5.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
+//DiscordRoles created with PluginMerge v(1.0.7.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
 namespace Oxide.Plugins
 {
     [Info("Discord Roles", "MJSU", "2.5.0")]
@@ -114,9 +94,11 @@ namespace Oxide.Plugins
             CommandCreate cmd = builder.Build();
             DiscordCommandLocalization loc = builder.BuildCommandLocalization();
             
-            _localizations.RegisterCommandLocalizationAsync(this, "Roles", loc, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0)).Then(() =>
+            TemplateKey command = new("Roles");
+            
+            _localizations.RegisterCommandLocalizationAsync(this, command, loc, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0)).Then(_ =>
             {
-                _localizations.ApplyCommandLocalizationsAsync(this, cmd, "Roles").Then(() =>
+                _localizations.ApplyCommandLocalizationsAsync(this, cmd, command).Then(() =>
                 {
                     Client.Bot.Application.CreateGlobalCommand(Client, builder.Build());
                 });
@@ -126,19 +108,15 @@ namespace Oxide.Plugins
         public void AddPlayerSyncCommand(ApplicationCommandBuilder builder)
         {
             builder.AddSubCommand("player", "Sync Oxide Player")
-            .AddOption(CommandOptionType.String, "player", "Player to Sync")
-            .Required()
-            .AutoComplete()
-            .Build();
+            .AddOption(CommandOptionType.String, "player", "Player to Sync",
+            options => options.Required().AutoComplete());
         }
         
         public void AddUserSyncCommand(ApplicationCommandBuilder builder)
         {
             builder.AddSubCommand("user", "Sync Discord User")
-            .AddOption(CommandOptionType.User, "user", "User to Sync")
-            .Required()
-            .Build()
-            .Build();
+            .AddOption(CommandOptionType.User, "user", "User to Sync",
+            options => options.Required());
         }
         
         [DiscordApplicationCommand("roles", "player")]
@@ -149,12 +127,12 @@ namespace Oxide.Plugins
             DiscordUser user = player?.GetDiscordUser();
             if (user == null)
             {
-                interaction.CreateTemplateResponse(Client, this, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.Player.Errors.NotLinked, null, GetDefault(player));
+                interaction.CreateTemplateResponse(Client, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.Player.Errors.NotLinked, null, GetDefault(player));
                 return;
             }
             
             QueueSync(new PlayerSyncRequest(player, user.Id, SyncEvent.None, false));
-            interaction.CreateTemplateResponse(Client, this, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.Player.Queued, null, GetDefault(player, user));
+            interaction.CreateTemplateResponse(Client, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.Player.Queued, null, GetDefault(player, user));
         }
         
         [DiscordApplicationCommand("roles", "user")]
@@ -164,18 +142,18 @@ namespace Oxide.Plugins
             IPlayer player = user?.Player;
             if (player == null)
             {
-                interaction.CreateTemplateResponse(Client, this, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.User.Errors.NotLinked, null, GetDefault(user));
+                interaction.CreateTemplateResponse(Client, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.User.Errors.NotLinked, null, GetDefault(user));
                 return;
             }
             
             QueueSync(new PlayerSyncRequest(player, user.Id, SyncEvent.None, false));
-            interaction.CreateTemplateResponse(Client, this, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.User.Queued, null, GetDefault(player, user));
+            interaction.CreateTemplateResponse(Client, InteractionResponseType.ChannelMessageWithSource, TemplateKeys.Commands.User.Queued, null, GetDefault(player, user));
         }
         
         [DiscordAutoCompleteCommand("roles", "player", "player")]
         private void HandleNameAutoComplete(DiscordInteraction interaction, InteractionDataOption focused)
         {
-            string search = focused.GetValue<string>();
+            string search = focused.GetString();
             InteractionAutoCompleteBuilder response = interaction.GetAutoCompleteBuilder();
             response.AddAllOnlineFirstPlayers(search, PlayerNameFormatter.ClanName);
             interaction.CreateResponse(Client, response);
@@ -690,7 +668,7 @@ namespace Oxide.Plugins
         public void SendDiscordMessage(ServerNotificationSettings settings, PlaceholderData data, NotificationType type)
         {
             DiscordChannel channel = Guild.Channels[settings.DiscordMessageChannelId];
-            channel?.CreateGlobalTemplateMessage(Client, this, settings.GetLocalizationKey(type), null, data);
+            channel?.CreateGlobalTemplateMessage(Client, settings.GetLocalizationTemplate(type), null, data);
         }
         
         public void SendPlayerMessage(IPlayer player, PlayerNotificationSettings settings, PlaceholderData data, NotificationType type)
@@ -705,7 +683,7 @@ namespace Oxide.Plugins
         {
             if (settings.SendDiscordPm)
             {
-                player.SendDiscordTemplateMessage(Client, this, settings.GetLocalizationKey(type), null, data);
+                player.SendDiscordTemplateMessage(Client, settings.GetLocalizationTemplate(type), null, data);
             }
         }
         #endregion
@@ -713,17 +691,14 @@ namespace Oxide.Plugins
         #region Plugins\DiscordRoles.Placeholders.cs
         public void RegisterPlaceholders()
         {
-            _placeholders.RegisterPlaceholder<BaseSyncSettings>(this, "discordroles.sync.group", "sync", GroupName);
+            _placeholders.RegisterPlaceholder<BaseSyncSettings, string>(this, PlaceholderKeys.Group, PlaceholderDataKeys.Sync, GroupName);
         }
         
-        public void GroupName(StringBuilder builder, PlaceholderState state, BaseSyncSettings settings)
-        {
-            PlaceholderFormatting.Replace(builder, state, settings.GroupName);
-        }
+        public string GroupName(BaseSyncSettings settings) => settings.GroupName;
         
         public PlaceholderData GetDefault(IPlayer player, DiscordUser user, BaseSyncSettings settings)
         {
-            return _placeholders.CreateData(this).AddPlayer(player).AddUser(user).Add("sync", settings).AddRole(settings.Role);
+            return _placeholders.CreateData(this).AddPlayer(player).AddUser(user).Add(PlaceholderDataKeys.Sync, settings).AddRole(settings.Role);
         }
         
         public PlaceholderData GetDefault(IPlayer player)
@@ -913,7 +888,7 @@ namespace Oxide.Plugins
             
             RegisterPlaceholders();
             
-            Client.Connect(new BotConnection()
+            Client.Connect(new BotConnection
             {
                 ApiToken = _config.DiscordApiKey,
                 LogLevel = _config.ExtensionDebugging,
@@ -1183,11 +1158,11 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "File Log Level (Verbose, Debug, Info, Warning, Error, Exception, Off)")]
             public DiscordLogLevel FileLogLevel { get; }
             
+            [JsonProperty(PropertyName = "File DateTime Format")]
+            public string FileDateTimeFormat { get; }
+            
             [JsonProperty(PropertyName = "Console Log Format")]
             public string ConsoleLogFormat { get; }
-            
-            [JsonProperty(PropertyName = "File Log Format")]
-            public string FileLogFormat { get; }
             
             [JsonConstructor]
             public LogSettings() { }
@@ -1198,7 +1173,7 @@ namespace Oxide.Plugins
                 ConsoleLogLevel = settings?.ConsoleLogLevel ?? DiscordLogLevel.Info;
                 FileLogLevel = settings?.FileLogLevel ?? DiscordLogLevel.Off;
                 ConsoleLogFormat = settings?.ConsoleLogFormat ?? "[DiscordRoles] [{0}]: {1}";
-                FileLogFormat = settings?.FileLogFormat ?? "{0:HH:mm:ss} [{1}]: {2}";
+                FileDateTimeFormat = settings?.FileDateTimeFormat ?? "HH:mm:ss";
             }
         }
         #endregion
@@ -1909,13 +1884,13 @@ namespace Oxide.Plugins
                 {
                     private const string Base = Commands.Base + nameof(User) + ".";
                     
-                    public const string Queued = Base + nameof(Queued);
+                    public static readonly TemplateKey Queued = new(Base + nameof(Queued));
                     
                     public static class Errors
                     {
                         private const string Base = User.Base + nameof(Errors) + ".";
                         
-                        public const string NotLinked = Base +nameof(NotLinked);
+                        public static readonly TemplateKey NotLinked = new(Base + nameof(NotLinked));
                     }
                 }
                 
@@ -1923,16 +1898,30 @@ namespace Oxide.Plugins
                 {
                     private const string Base = Commands.Base + nameof(Player) + ".";
                     
-                    public const string Queued = Base + nameof(Queued);
+                    public static readonly TemplateKey Queued = new(Base + nameof(Queued));
                     
                     public static class Errors
                     {
                         private const string Base = Player.Base + nameof(Errors) + ".";
                         
-                        public const string NotLinked = Base +nameof(NotLinked);
+                        public static readonly TemplateKey NotLinked = new(Base + nameof(NotLinked));
                     }
                 }
             }
+        }
+        #endregion
+
+        #region Placeholders\PlaceholderDataKeys.cs
+        public class PlaceholderDataKeys
+        {
+            public static readonly PlaceholderDataKey Sync = new("sync");
+        }
+        #endregion
+
+        #region Placeholders\PlaceholderKeys.cs
+        public class PlaceholderKeys
+        {
+            public static readonly PlaceholderKey Group = new(nameof(DiscordRoles), "group");
         }
         #endregion
 
@@ -2116,6 +2105,18 @@ namespace Oxide.Plugins
             [JsonIgnore]
             public string RoleRemoveKey { get; set; }
             
+            [JsonIgnore]
+            public TemplateKey GroupAddedTemplate { get; set; }
+            
+            [JsonIgnore]
+            public TemplateKey GroupRemoveTemplate { get; set; }
+            
+            [JsonIgnore]
+            public TemplateKey RoleAddedTemplate { get; set; }
+            
+            [JsonIgnore]
+            public TemplateKey RoleRemoveTemplate { get; set; }
+            
             protected BaseNotifications() { }
             
             protected BaseNotifications(BaseNotifications settings)
@@ -2131,7 +2132,7 @@ namespace Oxide.Plugins
                 {
                     case NotificationType.GroupAdded:
                     case NotificationType.RoleAdded:
-                    return SendMessageOnRemove;
+                    return SendMessageOnAdd;
                     
                     case NotificationType.GroupRemoved:
                     case NotificationType.RoleRemoved:
@@ -2154,6 +2155,23 @@ namespace Oxide.Plugins
                     return RoleAddedKey;
                     case NotificationType.RoleRemoved:
                     return RoleRemoveKey;
+                    default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
+                }
+            }
+            
+            public TemplateKey GetLocalizationTemplate(NotificationType type)
+            {
+                switch (type)
+                {
+                    case NotificationType.GroupAdded:
+                    return GroupAddedTemplate;
+                    case NotificationType.GroupRemoved:
+                    return GroupRemoveTemplate;
+                    case NotificationType.RoleAdded:
+                    return RoleAddedTemplate;
+                    case NotificationType.RoleRemoved:
+                    return RoleRemoveTemplate;
                     default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
                 }
@@ -2188,16 +2206,21 @@ namespace Oxide.Plugins
                 RoleAddedKey = LocalizationKey + LangKeys.Player.RoleAdded;
                 RoleRemoveKey = LocalizationKey + LangKeys.Player.RoleRemoved;
                 
-                loc[GroupAddedKey] = "You have been added to group {discordroles.sync.group}";
-                loc[GroupRemoveKey] =  "You have been removed from group {discordroles.sync.group}";
-                loc[RoleAddedKey] = "You have been added to Discord Role {role.name}";
-                loc[RoleRemoveKey] = "You have been removed from Discord Role {role.name}";
+                GroupAddedTemplate = new TemplateKey(GroupAddedKey);
+                GroupRemoveTemplate = new TemplateKey(GroupRemoveKey);
+                RoleAddedTemplate = new TemplateKey(RoleAddedKey);
+                RoleRemoveTemplate = new TemplateKey(RoleRemoveKey);
+                
+                loc[GroupAddedKey] = $"You have been added to group {PlaceholderKeys.Group}";
+                loc[GroupRemoveKey] =  $"You have been removed from group {PlaceholderKeys.Group}";
+                loc[RoleAddedKey] = $"You have been added to Discord Role {DefaultKeys.Role.Name}";
+                loc[RoleRemoveKey] = $"You have been removed from Discord Role {DefaultKeys.Role.Name}";
                 
                 DiscordMessageTemplates templates = DiscordRoles.Instance.Templates;
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupAddedKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupRemoveKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleAddedKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleRemoveKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             }
         }
         #endregion
@@ -2227,16 +2250,22 @@ namespace Oxide.Plugins
                 RoleAddedKey = LocalizationKey + LangKeys.Announcements.RoleAdded;
                 RoleRemoveKey = LocalizationKey + LangKeys.Announcements.RoleRemoved;
                 
+                
+                GroupAddedTemplate = new TemplateKey(GroupAddedKey);
+                GroupRemoveTemplate = new TemplateKey(GroupRemoveKey);
+                RoleAddedTemplate = new TemplateKey(RoleAddedKey);
+                RoleRemoveTemplate = new TemplateKey(RoleRemoveKey);
+                
                 loc[GroupAddedKey] = "{player.name} has been added to server group {group.name}";
                 loc[GroupRemoveKey] = "{player.name} has been removed to server group {group.name}";
                 loc[RoleAddedKey] = "{player.name} has been added to discord role {role.name}";
                 loc[RoleRemoveKey] = "{player.name} has been removed to discord role {role.name}";
                 
                 DiscordMessageTemplates templates = DiscordRoles.Instance.Templates;
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupAddedKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupRemoveKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleAddedKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleRemoveKey, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             }
         }
         #endregion
