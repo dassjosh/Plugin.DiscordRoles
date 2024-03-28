@@ -2313,6 +2313,11 @@
             Discord Bot Options
             </summary>
         </member>
+        <member name="P:Oxide.Ext.Discord.Configuration.DiscordConfig.Ip">
+            <summary>
+            Discord Bot Options
+            </summary>
+        </member>
         <member name="M:Oxide.Ext.Discord.Configuration.DiscordConfig.#ctor(System.String)">
             <summary>
             Constructor for discord config
@@ -2324,6 +2329,21 @@
             Load the config file and populate it.
             </summary>
             <param name="filename"></param>
+        </member>
+        <member name="T:Oxide.Ext.Discord.Configuration.DiscordIpConfig">
+            <summary>
+            IP data config
+            </summary>
+        </member>
+        <member name="P:Oxide.Ext.Discord.Configuration.DiscordIpConfig.StoreIpDuration">
+            <summary>
+            How many days to store IP data
+            </summary>
+        </member>
+        <member name="P:Oxide.Ext.Discord.Configuration.DiscordIpConfig.UnknownCountryEmoji">
+            <summary>
+            How many days to store IP data
+            </summary>
         </member>
         <member name="T:Oxide.Ext.Discord.Configuration.DiscordLoggingConfig">
             <summary>
@@ -15504,6 +15524,12 @@
             </summary>
             <param name="id"></param>
         </member>
+        <member name="M:Oxide.Ext.Discord.Entities.Snowflake.#ctor(System.ReadOnlySpan{System.Char})">
+            <summary>
+            Create a new snowflake from a <see cref="T:System.ReadOnlySpan`1"/>
+            </summary>
+            <param name="span"></param>
+        </member>
         <member name="M:Oxide.Ext.Discord.Entities.Snowflake.#ctor(System.DateTimeOffset,System.UInt64)">
             <summary>
             Create a snowflake from a DateTimeOffset and increment
@@ -20894,6 +20920,34 @@
             <param name="keys">Prefix to use for the placeholders</param>
             <param name="dataKey">Data key in <see cref="T:Oxide.Ext.Discord.Libraries.PlaceholderData"/></param>
         </member>
+        <member name="T:Oxide.Ext.Discord.Libraries.IpPlaceholders">
+            <summary>
+            IP Address Placeholders
+            </summary>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.IpPlaceholders.CountryName(System.String)">
+            <summary>
+            IP Country Name placeholder 
+            </summary>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.IpPlaceholders.CountryCode(System.String)">
+            <summary>
+            IP Country Code placeholder 
+            </summary>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.IpPlaceholders.CountryEmoji(System.String)">
+            <summary>
+            IP Country Emoji placeholder 
+            </summary>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.IpPlaceholders.RegisterPlaceholders(Oxide.Core.Plugins.Plugin,Oxide.Ext.Discord.Libraries.IpKeys,Oxide.Ext.Discord.Libraries.PlaceholderDataKey)">
+            <summary>
+            Registers placeholders for the given plugin. 
+            </summary>
+            <param name="plugin">Plugin to register placeholders for</param>
+            <param name="keys">Prefix to use for the placeholders</param>
+            <param name="dataKey">Data key in <see cref="T:Oxide.Ext.Discord.Libraries.PlaceholderData"/></param>
+        </member>
         <member name="T:Oxide.Ext.Discord.Libraries.MemberPlaceholders">
             <summary>
             <see cref="T:Oxide.Ext.Discord.Entities.GuildMember"/> placeholders
@@ -21708,6 +21762,11 @@
             <see cref="T:Oxide.Ext.Discord.Entities.DiscordInteraction"/> Placeholder Keys
             </summary>
         </member>
+        <member name="F:Oxide.Ext.Discord.Libraries.DefaultKeys.Ip">
+            <summary>
+            IP address placeholders
+            </summary>
+        </member>
         <member name="F:Oxide.Ext.Discord.Libraries.DefaultKeys.Member">
             <summary>
             <see cref="T:Oxide.Ext.Discord.Entities.GuildMember"/> Placeholder Keys
@@ -21835,6 +21894,37 @@
             </summary>
         </member>
         <member name="M:Oxide.Ext.Discord.Libraries.InteractionKeys.#ctor(System.String)">
+            <summary>
+            Constructor
+            </summary>
+            <param name="prefix">Placeholder Key Prefix</param>
+        </member>
+        <member name="T:Oxide.Ext.Discord.Libraries.IpKeys">
+            <summary>
+            Placeholder Keys for <see cref="T:Oxide.Ext.Discord.Libraries.IpPlaceholders"/>
+            </summary>
+        </member>
+        <member name="F:Oxide.Ext.Discord.Libraries.IpKeys.Ip">
+            <summary>
+            IP placeholder
+            </summary>
+        </member>
+        <member name="F:Oxide.Ext.Discord.Libraries.IpKeys.CountryName">
+            <summary>
+            Ip Country Name Placeholder
+            </summary>
+        </member>
+        <member name="F:Oxide.Ext.Discord.Libraries.IpKeys.CountryCode">
+            <summary>
+            IP Country Code Placeholder
+            </summary>
+        </member>
+        <member name="F:Oxide.Ext.Discord.Libraries.IpKeys.CountryEmoji">
+            <summary>
+            IP Country Emoji Placeholder
+            </summary>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.IpKeys.#ctor(System.String)">
             <summary>
             Constructor
             </summary>
@@ -22578,10 +22668,17 @@
         </member>
         <member name="M:Oxide.Ext.Discord.Libraries.PlaceholderData.AddRequestError(Oxide.Ext.Discord.Entities.ResponseError)">
             <summary>
-            Add a <see cref="T:Oxide.Ext.Discord.Entities.ResponseError"/>
+            Adds a <see cref="T:Oxide.Ext.Discord.Entities.ResponseError"/>
             </summary>
             <param name="error">RequestError to add</param>
             <returns>This</returns>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.PlaceholderData.AddIp(System.String)">
+            <summary>
+            Adds a IP
+            </summary>
+            <param name="ip"></param>
+            <returns></returns>
         </member>
         <member name="M:Oxide.Ext.Discord.Libraries.PlaceholderData.Add``1(Oxide.Ext.Discord.Libraries.PlaceholderDataKey,``0)">
             <summary>
@@ -23740,6 +23837,11 @@
             Should the field be on the same row
             </summary>
         </member>
+        <member name="P:Oxide.Ext.Discord.Libraries.DiscordEmbedFieldTemplate.HideIfEmpty">
+            <summary>
+            Hides the field if the value is null, empty, or \u200b
+            </summary>
+        </member>
         <member name="M:Oxide.Ext.Discord.Libraries.DiscordEmbedFieldTemplate.#ctor">
             <summary>
             Constructor
@@ -24101,6 +24203,13 @@
             <summary>
             Returns the template name
             </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Oxide.Ext.Discord.Libraries.TemplateKey.op_Implicit(Oxide.Ext.Discord.Libraries.TemplateKey)~System.String">
+            <summary>
+            Implicitly converts to <see cref="T:System.String"/> by calling the <see cref="M:Oxide.Ext.Discord.Libraries.TemplateKey.ToString"/> method.
+            </summary>
+            <param name="key"></param>
             <returns></returns>
         </member>
         <member name="T:Oxide.Ext.Discord.Libraries.TemplateType">
