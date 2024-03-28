@@ -21,10 +21,10 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 
-//DiscordRoles created with PluginMerge v(1.0.7.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
+//DiscordRoles created with PluginMerge v(1.0.8.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
 namespace Oxide.Plugins
 {
-    [Info("Discord Roles", "MJSU", "2.5.0")]
+    [Info("Discord Roles", "MJSU", "3.0.0")]
     [Description("Syncs players oxide group with discord roles")]
     public partial class DiscordRoles : CovalencePlugin, IDiscordPlugin
     {
