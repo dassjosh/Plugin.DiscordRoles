@@ -57,15 +57,15 @@ namespace Oxide.Plugins
             config.LogSettings = new LogSettings(config.LogSettings);
             config.ConflictSettings = new ConflictSettings(config.ConflictSettings);
             
-            config.SyncSettings = config.SyncSettings ?? new List<SyncSettings>
+            config.SyncSettings ??= new List<SyncSettings>
             {
-                new SyncSettings("Default", default(Snowflake), SyncMode.Server),
-                new SyncSettings("VIP", default(Snowflake), SyncMode.Discord)
+                new("Default", default, SyncMode.Server),
+                new("VIP", default, SyncMode.Discord)
             };
             
-            config.PriorityGroupSettings = config.PriorityGroupSettings ?? new List<PriorityGroupSettings>
+            config.PriorityGroupSettings ??= new List<PriorityGroupSettings>
             {
-                new PriorityGroupSettings(null)
+                new(null)
             };
             
             for (int index = 0; index < config.SyncSettings.Count; index++)
@@ -195,6 +195,7 @@ namespace Oxide.Plugins
             }
             
             SubscribeAll();
+            RegisterCommands();
         }
         
         [HookMethod(DiscordExtHooks.OnDiscordGuildCreated)]
@@ -377,10 +378,10 @@ namespace Oxide.Plugins
         
         public ILogger Logger;
         
-        private readonly List<BaseHandler> _syncHandlers = new List<BaseHandler>();
-        private readonly List<Snowflake> _processRoles = new List<Snowflake>();
-        private readonly List<PlayerSyncRequest> _processQueue = new List<PlayerSyncRequest>();
-        private readonly Hash<string, RecentSyncData> _recentSync = new Hash<string, RecentSyncData>();
+        private readonly List<BaseHandler> _syncHandlers = new();
+        private readonly List<Snowflake> _processRoles = new();
+        private readonly List<PlayerSyncRequest> _processQueue = new();
+        private readonly Hash<string, RecentSyncData> _recentSync = new();
         
         private Action _processNextCallback;
         
@@ -574,7 +575,7 @@ namespace Oxide.Plugins
         #region Plugins\DiscordRoles.Lang.cs
         public void RegisterLang()
         {
-            Dictionary<string, string> loc = new Dictionary<string, string>
+            Dictionary<string, string> loc = new()
             {
                 [LangKeys.Chat] = $"[#BEBEBE][[{AccentColor}]{Title}[/#]] {{0}}[/#]",
                 [LangKeys.ClanTag] = "[{0}] {1}"
@@ -691,10 +692,8 @@ namespace Oxide.Plugins
         #region Plugins\DiscordRoles.Placeholders.cs
         public void RegisterPlaceholders()
         {
-            _placeholders.RegisterPlaceholder<BaseSyncSettings, string>(this, PlaceholderKeys.Group, PlaceholderDataKeys.Sync, GroupName);
+            _placeholders.RegisterPlaceholder<BaseSyncSettings, string>(this, PlaceholderKeys.Group, PlaceholderDataKeys.Sync, settings => settings.GroupName);
         }
-        
-        public string GroupName(BaseSyncSettings settings) => settings.GroupName;
         
         public PlaceholderData GetDefault(IPlayer player, DiscordUser user, BaseSyncSettings settings)
         {
@@ -990,7 +989,7 @@ namespace Oxide.Plugins
             {
                 Embeds = new List<DiscordEmbedTemplate>
                 {
-                    new DiscordEmbedTemplate
+                    new()
                     {
                         Description = $"[{{plugin.title}}] {description}",
                         Color = $"#{color}"
@@ -1081,9 +1080,7 @@ namespace Oxide.Plugins
             public EnabledSyncEvents NicknameSync { get; set; }
             
             [JsonConstructor]
-            public EventSettings()
-            {
-            }
+            public EventSettings() { }
             
             public EventSettings(EventSettings settings)
             {
@@ -1240,8 +1237,8 @@ namespace Oxide.Plugins
         public class PlayerData
         {
             public string PlayerId { get; set; }
-            public readonly List<string> IgnoreGroup = new List<string>();
-            public readonly List<Snowflake> IgnoreRole = new List<Snowflake>();
+            public readonly List<string> IgnoreGroup = new();
+            public readonly List<Snowflake> IgnoreRole = new();
             
             [JsonConstructor]
             public PlayerData() { }
@@ -1253,6 +1250,7 @@ namespace Oxide.Plugins
             
             public bool CanRemoveGroup(string group) => !IgnoreGroup.Contains(group);
             public bool CanRemoveRole(Snowflake role) => !IgnoreRole.Contains(role);
+            
             public void OnGroupAdded(string group)
             {
                 IgnoreGroup.Remove(group);
@@ -1292,7 +1290,7 @@ namespace Oxide.Plugins
         #region Data\PluginData.cs
         public class PluginData
         {
-            public Hash<string, PlayerData> PlayerData = new Hash<string, PlayerData>();
+            public Hash<string, PlayerData> PlayerData = new();
             
             [JsonIgnore]
             public bool HasChanged { get; private set; }
@@ -1337,8 +1335,8 @@ namespace Oxide.Plugins
         public class RecentSyncData
         {
             private readonly string _playerId;
-            private readonly Hash<string, int> _removedGroupCount = new Hash<string, int>();
-            private readonly Hash<Snowflake, int> _removedRoleCount = new Hash<Snowflake, int>();
+            private readonly Hash<string, int> _removedGroupCount = new();
+            private readonly Hash<Snowflake, int> _removedRoleCount = new();
             private readonly ConflictSettings _settings;
             
             public RecentSyncData(ConflictSettings settings, string playerId)
@@ -1372,7 +1370,7 @@ namespace Oxide.Plugins
         #endregion
 
         #region Enums\NotificationType.cs
-        public enum NotificationType
+        public enum NotificationType : byte
         {
             GroupAdded,
             GroupRemoved,
@@ -1939,8 +1937,8 @@ namespace Oxide.Plugins
             private string _playerGroups;
             private string _playerRoles;
             
-            private readonly List<Snowflake> _roles = new List<Snowflake>();
-            private readonly List<string> _groups = new List<string>();
+            private readonly List<Snowflake> _roles = new();
+            private readonly List<string> _groups = new();
             private readonly Permission _permission = Interface.Oxide.GetLibrary<Permission>();
             private readonly DiscordRoles _plugin = DiscordRoles.Instance;
             private readonly RecentSyncData _recentSync;
@@ -1961,9 +1959,9 @@ namespace Oxide.Plugins
                 SetMember(Member);
             }
             
-            public string PlayerName => _playerName ?? (_playerName = $"Player: {Player.Name}({Player.Id}) User: {Member?.User.FullUserName}({MemberId})");
-            public string PlayerGroups => _playerGroups ?? (_playerGroups = _playerGroups = string.Join(", ", _groups));
-            public string PlayerRoles => _playerRoles ?? (_playerRoles = string.Join(", ", _roles.Select(r => DiscordRoles.Instance.Guild.Roles[r]?.Name ?? $"Unknown Role ({r})")));
+            public string PlayerName => _playerName ??= $"Player: {Player.Name}({Player.Id}) User: {Member?.User.FullUserName}({MemberId})";
+            public string PlayerGroups => _playerGroups ??= _playerGroups = string.Join(", ", _groups);
+            public string PlayerRoles => _playerRoles ??= string.Join(", ", _roles.Select(r => DiscordRoles.Instance.Guild.Roles[r]?.Name ?? $"Unknown Role ({r})"));
             public bool HasGroup(string group) => _groups.Contains(group, StringComparer.InvariantCultureIgnoreCase);
             public bool HasRole(Snowflake roleId) => !IsLeaving && (_roles.Contains(roleId) || _plugin.Guild.Id == roleId);
             
@@ -2145,36 +2143,26 @@ namespace Oxide.Plugins
             
             public string GetLocalizationKey(NotificationType type)
             {
-                switch (type)
+                return type switch
                 {
-                    case NotificationType.GroupAdded:
-                    return GroupAddedKey;
-                    case NotificationType.GroupRemoved:
-                    return GroupRemoveKey;
-                    case NotificationType.RoleAdded:
-                    return RoleAddedKey;
-                    case NotificationType.RoleRemoved:
-                    return RoleRemoveKey;
-                    default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-                }
+                    NotificationType.GroupAdded => GroupAddedKey,
+                    NotificationType.GroupRemoved => GroupRemoveKey,
+                    NotificationType.RoleAdded => RoleAddedKey,
+                    NotificationType.RoleRemoved => RoleRemoveKey,
+                    _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+                };
             }
             
             public TemplateKey GetLocalizationTemplate(NotificationType type)
             {
-                switch (type)
+                return type switch
                 {
-                    case NotificationType.GroupAdded:
-                    return GroupAddedTemplate;
-                    case NotificationType.GroupRemoved:
-                    return GroupRemoveTemplate;
-                    case NotificationType.RoleAdded:
-                    return RoleAddedTemplate;
-                    case NotificationType.RoleRemoved:
-                    return RoleRemoveTemplate;
-                    default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
-                }
+                    NotificationType.GroupAdded => GroupAddedTemplate,
+                    NotificationType.GroupRemoved => GroupRemoveTemplate,
+                    NotificationType.RoleAdded => RoleAddedTemplate,
+                    NotificationType.RoleRemoved => RoleRemoveTemplate,
+                    _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+                };
             }
             
             public abstract void AddLocalizations(Dictionary<string, string> loc);

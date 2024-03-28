@@ -11,10 +11,8 @@ public partial class DiscordRoles
 {
     public void RegisterPlaceholders()
     {
-        _placeholders.RegisterPlaceholder<BaseSyncSettings, string>(this, PlaceholderKeys.Group, PlaceholderDataKeys.Sync, GroupName);
+        _placeholders.RegisterPlaceholder<BaseSyncSettings, string>(this, PlaceholderKeys.Group, PlaceholderDataKeys.Sync, settings => settings.GroupName);
     }
-
-    public string GroupName(BaseSyncSettings settings) => settings.GroupName;
 
     public PlaceholderData GetDefault(IPlayer player, DiscordUser user, BaseSyncSettings settings)
     {

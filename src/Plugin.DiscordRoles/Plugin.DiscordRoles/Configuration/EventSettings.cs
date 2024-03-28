@@ -15,9 +15,7 @@ public class EventSettings
     public EnabledSyncEvents NicknameSync { get; set; }
 
     [JsonConstructor]
-    public EventSettings()
-    {
-    }
+    public EventSettings() { }
 
     public EventSettings(EventSettings settings)
     {

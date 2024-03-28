@@ -10,11 +10,11 @@ public class LogSettings : IDiscordLoggingConfig
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty(PropertyName = "Plugin Log Level (Verbose, Debug, Info, Warning, Error, Exception, Off)")]
     public DiscordLogLevel PluginLogLevel { get; set; }
-        
+
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty(PropertyName = "Console Log Level (Verbose, Debug, Info, Warning, Error, Exception, Off)")]
     public DiscordLogLevel ConsoleLogLevel { get; }
-        
+
     [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty(PropertyName = "File Log Level (Verbose, Debug, Info, Warning, Error, Exception, Off)")]
     public DiscordLogLevel FileLogLevel { get; }
@@ -27,13 +27,13 @@ public class LogSettings : IDiscordLoggingConfig
 
     [JsonConstructor]
     public LogSettings() { }
-        
+
     public LogSettings(LogSettings settings)
     {
-            PluginLogLevel = settings?.PluginLogLevel ?? DiscordLogLevel.Info;
-            ConsoleLogLevel = settings?.ConsoleLogLevel ?? DiscordLogLevel.Info;
-            FileLogLevel = settings?.FileLogLevel ?? DiscordLogLevel.Off;
-            ConsoleLogFormat = settings?.ConsoleLogFormat ?? "[DiscordRoles] [{0}]: {1}";
-            FileDateTimeFormat = settings?.FileDateTimeFormat ?? "HH:mm:ss";
-        }
+        PluginLogLevel = settings?.PluginLogLevel ?? DiscordLogLevel.Info;
+        ConsoleLogLevel = settings?.ConsoleLogLevel ?? DiscordLogLevel.Info;
+        FileLogLevel = settings?.FileLogLevel ?? DiscordLogLevel.Off;
+        ConsoleLogFormat = settings?.ConsoleLogFormat ?? "[DiscordRoles] [{0}]: {1}";
+        FileDateTimeFormat = settings?.FileDateTimeFormat ?? "HH:mm:ss";
+    }
 }

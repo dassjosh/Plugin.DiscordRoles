@@ -26,7 +26,7 @@ public partial class DiscordRoles
         {
             Embeds = new List<DiscordEmbedTemplate>
             {
-                new DiscordEmbedTemplate
+                new()
                 {
                     Description = $"[{{plugin.title}}] {description}",
                     Color = $"#{color}"

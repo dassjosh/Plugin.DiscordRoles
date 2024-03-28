@@ -12,7 +12,7 @@ public class ConflictSettings
 
     public ConflictSettings(ConflictSettings settings)
     {
-            GroupConflictLimit = settings?.GroupConflictLimit ?? 3;
-            RoleConflictLimit = settings?.RoleConflictLimit ?? 3;
-        }
+        GroupConflictLimit = settings?.GroupConflictLimit ?? 3;
+        RoleConflictLimit = settings?.RoleConflictLimit ?? 3;
+    }
 }

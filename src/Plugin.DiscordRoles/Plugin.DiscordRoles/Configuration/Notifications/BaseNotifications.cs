@@ -69,36 +69,26 @@ public abstract class BaseNotifications
 
     public string GetLocalizationKey(NotificationType type)
     {
-        switch (type)
+        return type switch
         {
-            case NotificationType.GroupAdded:
-                return GroupAddedKey;
-            case NotificationType.GroupRemoved:
-                return GroupRemoveKey;
-            case NotificationType.RoleAdded:
-                return RoleAddedKey;
-            case NotificationType.RoleRemoved:
-                return RoleRemoveKey;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
+            NotificationType.GroupAdded => GroupAddedKey,
+            NotificationType.GroupRemoved => GroupRemoveKey,
+            NotificationType.RoleAdded => RoleAddedKey,
+            NotificationType.RoleRemoved => RoleRemoveKey,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
     }
         
     public TemplateKey GetLocalizationTemplate(NotificationType type)
     {
-        switch (type)
+        return type switch
         {
-            case NotificationType.GroupAdded:
-                return GroupAddedTemplate;
-            case NotificationType.GroupRemoved:
-                return GroupRemoveTemplate;
-            case NotificationType.RoleAdded:
-                return RoleAddedTemplate;
-            case NotificationType.RoleRemoved:
-                return RoleRemoveTemplate;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
+            NotificationType.GroupAdded => GroupAddedTemplate,
+            NotificationType.GroupRemoved => GroupRemoveTemplate,
+            NotificationType.RoleAdded => RoleAddedTemplate,
+            NotificationType.RoleRemoved => RoleRemoveTemplate,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
     }
 
     public abstract void AddLocalizations(Dictionary<string, string> loc);

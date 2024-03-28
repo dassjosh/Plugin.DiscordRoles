@@ -25,8 +25,8 @@ public class PlayerSyncRequest
     private string _playerGroups;
     private string _playerRoles;
         
-    private readonly List<Snowflake> _roles = new List<Snowflake>();
-    private readonly List<string> _groups = new List<string>();
+    private readonly List<Snowflake> _roles = new();
+    private readonly List<string> _groups = new();
     private readonly Permission _permission = Interface.Oxide.GetLibrary<Permission>();
     private readonly DiscordRoles _plugin = DiscordRoles.Instance;
     private readonly RecentSyncData _recentSync;
@@ -47,9 +47,9 @@ public class PlayerSyncRequest
         SetMember(Member);
     }
 
-    public string PlayerName => _playerName ?? (_playerName = $"Player: {Player.Name}({Player.Id}) User: {Member?.User.FullUserName}({MemberId})");
-    public string PlayerGroups => _playerGroups ?? (_playerGroups = _playerGroups = string.Join(", ", _groups));
-    public string PlayerRoles => _playerRoles ?? (_playerRoles = string.Join(", ", _roles.Select(r => DiscordRoles.Instance.Guild.Roles[r]?.Name ?? $"Unknown Role ({r})")));
+    public string PlayerName => _playerName ??= $"Player: {Player.Name}({Player.Id}) User: {Member?.User.FullUserName}({MemberId})";
+    public string PlayerGroups => _playerGroups ??= _playerGroups = string.Join(", ", _groups);
+    public string PlayerRoles => _playerRoles ??= string.Join(", ", _roles.Select(r => DiscordRoles.Instance.Guild.Roles[r]?.Name ?? $"Unknown Role ({r})"));
     public bool HasGroup(string group) => _groups.Contains(group, StringComparer.InvariantCultureIgnoreCase);
     public bool HasRole(Snowflake roleId) => !IsLeaving && (_roles.Contains(roleId) || _plugin.Guild.Id == roleId);
 

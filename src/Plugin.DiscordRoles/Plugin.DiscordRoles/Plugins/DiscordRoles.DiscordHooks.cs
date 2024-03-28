@@ -48,6 +48,7 @@ public partial class DiscordRoles
         }
             
         SubscribeAll();
+        RegisterCommands();
     }
 
     [HookMethod(DiscordExtHooks.OnDiscordGuildCreated)]

@@ -1,6 +1,6 @@
 ﻿namespace DiscordRolesPlugin.Enums;
 
-public enum NotificationType
+public enum NotificationType : byte
 {
     GroupAdded,
     GroupRemoved,

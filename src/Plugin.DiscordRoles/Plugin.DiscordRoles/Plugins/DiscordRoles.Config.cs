@@ -28,15 +28,15 @@ public partial class DiscordRoles
         config.LogSettings = new LogSettings(config.LogSettings);
         config.ConflictSettings = new ConflictSettings(config.ConflictSettings);
 
-        config.SyncSettings = config.SyncSettings ?? new List<SyncSettings>
+        config.SyncSettings ??= new List<SyncSettings>
         {
-            new SyncSettings("Default", default(Snowflake), SyncMode.Server),
-            new SyncSettings("VIP", default(Snowflake), SyncMode.Discord)
+            new("Default", default, SyncMode.Server),
+            new("VIP", default, SyncMode.Discord)
         };
 
-        config.PriorityGroupSettings = config.PriorityGroupSettings ?? new List<PriorityGroupSettings>
+        config.PriorityGroupSettings ??= new List<PriorityGroupSettings>
         {
-            new PriorityGroupSettings(null)
+            new(null)
         };
             
         for (int index = 0; index < config.SyncSettings.Count; index++)

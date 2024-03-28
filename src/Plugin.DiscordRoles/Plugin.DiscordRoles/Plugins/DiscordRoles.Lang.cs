@@ -11,7 +11,7 @@ public partial class DiscordRoles
 {
     public void RegisterLang()
     {
-        Dictionary<string, string> loc = new Dictionary<string, string>
+        Dictionary<string, string> loc = new()
         {
             [LangKeys.Chat] = $"[#BEBEBE][[{AccentColor}]{Title}[/#]] {{0}}[/#]",
             [LangKeys.ClanTag] = "[{0}] {1}"

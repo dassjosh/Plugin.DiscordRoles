@@ -41,10 +41,10 @@ public partial class DiscordRoles
 
     public ILogger Logger;
 
-    private readonly List<BaseHandler> _syncHandlers = new List<BaseHandler>();
-    private readonly List<Snowflake> _processRoles = new List<Snowflake>();
-    private readonly List<PlayerSyncRequest> _processQueue = new List<PlayerSyncRequest>();
-    private readonly Hash<string, RecentSyncData> _recentSync = new Hash<string, RecentSyncData>();
+    private readonly List<BaseHandler> _syncHandlers = new();
+    private readonly List<Snowflake> _processRoles = new();
+    private readonly List<PlayerSyncRequest> _processQueue = new();
+    private readonly Hash<string, RecentSyncData> _recentSync = new();
 
     private Action _processNextCallback;
         
