@@ -54,13 +54,13 @@ public partial class DiscordRoles
         }
         catch
         {
-                
+            // ignored
         }
     }
 
     public void UnsubscribeDiscordAll()
     {
-        if (Client.Bot != null)
+        if (Client?.Bot != null)
         {
             Unsubscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
             Unsubscribe(nameof(OnDiscordGuildMemberRoleAdded));

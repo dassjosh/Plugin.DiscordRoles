@@ -67,5 +67,6 @@ public partial class DiscordRoles
         }
             
         Interface.Oxide.DataFileSystem.WriteObject(Name, Data);
+        Data.OnSaved();
     }
 }

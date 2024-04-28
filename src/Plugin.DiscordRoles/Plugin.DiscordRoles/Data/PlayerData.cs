@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using DiscordRolesPlugin.Plugins;
 using Newtonsoft.Json;
 using Oxide.Ext.Discord.Entities;
@@ -16,6 +17,10 @@ public class PlayerData
 
     public PlayerData(string playerId)
     {
+        if (string.IsNullOrEmpty(playerId))
+        {
+            throw new ArgumentNullException(nameof(playerId));
+        }
         PlayerId = playerId;
     }
 

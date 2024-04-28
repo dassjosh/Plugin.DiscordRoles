@@ -10,17 +10,14 @@ public class PluginData
     [JsonIgnore] 
     public bool HasChanged { get; private set; }
 
-    public PlayerData GetPlayerData(string playerId)
-    {
-        return PlayerData[playerId];
-    }
+    public PlayerData GetPlayerData(string playerId) => PlayerData[playerId];
 
     public PlayerData GetOrCreatePlayerData(string playerId)
     {
         PlayerData data = GetPlayerData(playerId);
         if (data == null)
         {
-            data = new PlayerData();
+            data = new PlayerData(playerId);
             PlayerData[playerId] = data;
             OnDataChanged();
         }
@@ -34,13 +31,6 @@ public class PluginData
         OnDataChanged();
     }
 
-    public void OnDataChanged()
-    {
-        HasChanged = true;
-    }
-
-    public void OnSaved()
-    {
-        HasChanged = false;
-    }
+    public void OnDataChanged() => HasChanged = true;
+    public void OnSaved() => HasChanged = false;
 }

@@ -227,7 +227,7 @@ namespace Oxide.Plugins
             }
             
             data.Role = role;
-            if (botMaxRole != null && role.Position < botMaxRole.Position)
+            if (botMaxRole != null && role.Position > botMaxRole.Position)
             {
                 Logger.Warning("Discord Role '{0}' has a role position of {1} which is higher than the highest bot role {2} with position {3}. The bot will not be able to grant this role until this is fixed.", role.Name, role.Position, botMaxRole.Name, botMaxRole.Position);
             }
@@ -448,6 +448,7 @@ namespace Oxide.Plugins
             }
             
             Interface.Oxide.DataFileSystem.WriteObject(Name, Data);
+            Data.OnSaved();
         }
         #endregion
 
@@ -555,13 +556,13 @@ namespace Oxide.Plugins
             }
             catch
             {
-                
+                // ignored
             }
         }
         
         public void UnsubscribeDiscordAll()
         {
-            if (Client.Bot != null)
+            if (Client?.Bot != null)
             {
                 Unsubscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
                 Unsubscribe(nameof(OnDiscordGuildMemberRoleAdded));
@@ -1245,6 +1246,10 @@ namespace Oxide.Plugins
             
             public PlayerData(string playerId)
             {
+                if (string.IsNullOrEmpty(playerId))
+                {
+                    throw new ArgumentNullException(nameof(playerId));
+                }
                 PlayerId = playerId;
             }
             
@@ -1295,17 +1300,14 @@ namespace Oxide.Plugins
             [JsonIgnore]
             public bool HasChanged { get; private set; }
             
-            public PlayerData GetPlayerData(string playerId)
-            {
-                return PlayerData[playerId];
-            }
+            public PlayerData GetPlayerData(string playerId) => PlayerData[playerId];
             
             public PlayerData GetOrCreatePlayerData(string playerId)
             {
                 PlayerData data = GetPlayerData(playerId);
                 if (data == null)
                 {
-                    data = new PlayerData();
+                    data = new PlayerData(playerId);
                     PlayerData[playerId] = data;
                     OnDataChanged();
                 }
@@ -1319,15 +1321,8 @@ namespace Oxide.Plugins
                 OnDataChanged();
             }
             
-            public void OnDataChanged()
-            {
-                HasChanged = true;
-            }
-            
-            public void OnSaved()
-            {
-                HasChanged = false;
-            }
+            public void OnDataChanged() => HasChanged = true;
+            public void OnSaved() => HasChanged = false;
         }
         #endregion
 

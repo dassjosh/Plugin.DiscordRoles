@@ -80,7 +80,7 @@ public partial class DiscordRoles
         }
 
         data.Role = role;
-        if (botMaxRole != null && role.Position < botMaxRole.Position)
+        if (botMaxRole != null && role.Position > botMaxRole.Position)
         {
             Logger.Warning("Discord Role '{0}' has a role position of {1} which is higher than the highest bot role {2} with position {3}. The bot will not be able to grant this role until this is fixed.", role.Name, role.Position, botMaxRole.Name, botMaxRole.Position);
         }
