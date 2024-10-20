@@ -15,22 +15,20 @@ public partial class DiscordRoles
 {
     public void SendSyncNotification(PlayerSyncRequest request, BaseSyncSettings sync, INotificationSettings settings, NotificationType type)
     {
-        using (PlaceholderData data = GetDefault(request.Player, request.Member?.User ?? EntityCache<DiscordUser>.Instance.Get(request.MemberId), sync))
+        using PlaceholderData data = GetDefault(request.Player, request.Member?.User ?? EntityCache<DiscordUser>.Instance.Get(request.MemberId), sync);
+        data.ManualPool();
+        if (settings.ServerNotifications.CanSendNotification(type))
         {
-            data.ManualPool();
-            if (settings.ServerNotifications.CanSendNotification(type))
-            {
-                SendServerMessage(settings.ServerNotifications, data, type);
-                SendDiscordMessage(settings.ServerNotifications, data, type);
-            }
+            SendServerMessage(settings.ServerNotifications, data, type);
+            SendDiscordMessage(settings.ServerNotifications, data, type);
+        }
                 
-            if (settings.PlayerNotifications.CanSendNotification(type))
+        if (settings.PlayerNotifications.CanSendNotification(type))
+        {
+            SendPlayerMessage(request.Player, settings.PlayerNotifications, data, type);
+            if (!request.IsLeaving)
             {
-                SendPlayerMessage(request.Player, settings.PlayerNotifications, data, type);
-                if (!request.IsLeaving)
-                {
-                    SendDiscordPmMessage(request.Player, settings.PlayerNotifications, data, type);
-                }
+                SendDiscordPmMessage(request.Player, settings.PlayerNotifications, data, type);
             }
         }
     }

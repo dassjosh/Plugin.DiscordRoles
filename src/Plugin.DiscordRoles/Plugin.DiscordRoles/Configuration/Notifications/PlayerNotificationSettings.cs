@@ -25,7 +25,7 @@ public class PlayerNotificationSettings : BaseNotifications
         SendDiscordPm = settings?.SendDiscordPm ?? false;
     }
 
-    public override void AddLocalizations(Dictionary<string, string> loc)
+    public override void Initialize()
     {
         GroupAddedKey = LocalizationKey + LangKeys.Player.GroupAdded;
         GroupRemoveKey = LocalizationKey + LangKeys.Player.GroupRemoved;
@@ -36,16 +36,19 @@ public class PlayerNotificationSettings : BaseNotifications
         GroupRemoveTemplate = new TemplateKey(GroupRemoveKey);
         RoleAddedTemplate = new TemplateKey(RoleAddedKey);
         RoleRemoveTemplate = new TemplateKey(RoleRemoveKey);
-            
+    }
+
+    public override void AddLocalizations(Dictionary<string, string> loc)
+    {
         loc[GroupAddedKey] = $"You have been added to group {PlaceholderKeys.Group}";
         loc[GroupRemoveKey] =  $"You have been removed from group {PlaceholderKeys.Group}";
         loc[RoleAddedKey] = $"You have been added to Discord Role {DefaultKeys.Role.Name}";
         loc[RoleRemoveKey] = $"You have been removed from Discord Role {DefaultKeys.Role.Name}";
 
         DiscordMessageTemplates templates = DiscordRoles.Instance.Templates;
-        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+        templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
     }
 }

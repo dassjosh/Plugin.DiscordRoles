@@ -20,8 +20,7 @@ public class RecentSyncData
 
     public void OnGroupRemoved(string group)
     {
-        int count = _removedGroupCount[group];
-        count += 1;
+        int count = _removedGroupCount[group] + 1;
         _removedGroupCount[group] = count;
         if (count > _settings.GroupConflictLimit)
         {
@@ -31,8 +30,7 @@ public class RecentSyncData
 
     public void OnRoleRemoved(Snowflake role)
     {
-        int count = _removedRoleCount[role];
-        count += 1;
+        int count = _removedRoleCount[role] + 1;
         _removedRoleCount[role] = count;
         if (count > _settings.RoleConflictLimit)
         {

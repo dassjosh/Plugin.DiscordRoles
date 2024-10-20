@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using DiscordRolesPlugin.Configuration.Notifications;
 using DiscordRolesPlugin.Configuration.SyncConfig;
 using DiscordRolesPlugin.Lang;
 using Oxide.Core.Libraries.Covalence;
@@ -11,6 +12,8 @@ public partial class DiscordRoles
 {
     public void RegisterLang()
     {
+        HashSet<string> server = new();
+        HashSet<string> player = new();
         Dictionary<string, string> loc = new()
         {
             [LangKeys.Chat] = $"[#BEBEBE][[{AccentColor}]{Title}[/#]] {{0}}[/#]",
@@ -20,18 +23,36 @@ public partial class DiscordRoles
         for (int index = 0; index < _config.SyncSettings.Count; index++)
         {
             SyncSettings settings = _config.SyncSettings[index];
-            settings.ServerNotifications.AddLocalizations(loc);
-            settings.PlayerNotifications.AddLocalizations(loc);
+            HandleServerRegistration(settings.ServerNotifications, loc, server);
+            HandlePlayerRegistration(settings.PlayerNotifications, loc, player);
         }
 
         for (int index = 0; index < _config.PriorityGroupSettings.Count; index++)
         {
             PriorityGroupSettings group = _config.PriorityGroupSettings[index];
-            group.ServerNotifications.AddLocalizations(loc);
-            group.PlayerNotifications.AddLocalizations(loc);
+            HandleServerRegistration(group.ServerNotifications, loc, server);
+            HandlePlayerRegistration(group.PlayerNotifications, loc, player);
         }
 
         lang.RegisterMessages(loc, this);
+    }
+
+    public void HandleServerRegistration(ServerNotificationSettings server, Dictionary<string, string> loc, HashSet<string> registered)
+    {
+        server.Initialize();
+        if (registered.Add(server.LocalizationKey))
+        {
+            server.AddLocalizations(loc);
+        }
+    }
+    
+    public void HandlePlayerRegistration(PlayerNotificationSettings player, Dictionary<string, string> loc, HashSet<string> registered)
+    {
+        player.Initialize();
+        if (registered.Add(player.LocalizationKey))
+        {
+            player.AddLocalizations(loc);
+        }
     }
 
     public void Chat(string message)

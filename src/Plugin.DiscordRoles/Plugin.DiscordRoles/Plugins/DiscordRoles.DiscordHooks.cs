@@ -28,7 +28,7 @@ public partial class DiscordRoles
         {
             Guild = ready.Guilds.Values.FirstOrDefault();
         }
-
+        
         if (Guild == null)
         {
             Guild = ready.Guilds[_config.GuildId];
@@ -48,6 +48,7 @@ public partial class DiscordRoles
         }
             
         SubscribeAll();
+        RegisterTemplates();
         RegisterCommands();
     }
 
@@ -200,6 +201,6 @@ public partial class DiscordRoles
         }
             
         _processQueue.RemoveAll(p => p.MemberId == userId && !p.IsLeaving);
-        QueueSync(new PlayerSyncRequest(player, member, syncEvent));
+        QueueSync(new PlayerSyncRequest(player, user.Id, syncEvent, false));
     }
 }

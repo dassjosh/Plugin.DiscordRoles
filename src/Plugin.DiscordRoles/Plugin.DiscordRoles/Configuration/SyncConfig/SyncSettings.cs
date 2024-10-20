@@ -13,6 +13,7 @@ public class SyncSettings : BaseSyncSettings, INotificationSettings
     [JsonProperty(PropertyName = "Sync Mode (Server, Discord, Bidirectional)", Order = 1)]
     public SyncMode SyncMode { get; set; }
 
+    [JsonConverter(typeof(StringEnumConverter))]
     [JsonProperty(PropertyName = "Sync Remove Mode (Remove, Keep)", Order = 2)]
     public RemoveMode RemoveMode { get; set; }
         

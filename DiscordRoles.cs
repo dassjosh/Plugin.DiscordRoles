@@ -19,9 +19,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
 
-//DiscordRoles created with PluginMerge v(1.0.8.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
+//DiscordRoles created with PluginMerge v(1.0.9.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
 namespace Oxide.Plugins
 {
     [Info("Discord Roles", "MJSU", "3.0.0")]
@@ -68,6 +67,8 @@ namespace Oxide.Plugins
                 new(null)
             };
             
+            config.Nickname = new NicknameSettings(config.Nickname);
+            
             for (int index = 0; index < config.SyncSettings.Count; index++)
             {
                 config.SyncSettings[index] = new SyncSettings(config.SyncSettings[index]);
@@ -96,27 +97,24 @@ namespace Oxide.Plugins
             
             TemplateKey command = new("Roles");
             
-            _localizations.RegisterCommandLocalizationAsync(this, command, loc, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0)).Then(_ =>
-            {
-                _localizations.ApplyCommandLocalizationsAsync(this, cmd, command).Then(() =>
-                {
-                    Client.Bot.Application.CreateGlobalCommand(Client, builder.Build());
-                });
-            });
+            _localizations.RegisterCommandLocalizationAsync(this, command, loc, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0)).Then(_ => { _localizations.ApplyCommandLocalizationsAsync(this, cmd, command).Then(() => { Client.Bot.Application.CreateGlobalCommand(Client, builder.Build()); }); });
         }
         
         public void AddPlayerSyncCommand(ApplicationCommandBuilder builder)
         {
-            builder.AddSubCommand("player", "Sync Oxide Player")
-            .AddOption(CommandOptionType.String, "player", "Player to Sync",
-            options => options.Required().AutoComplete());
+            builder.AddSubCommand("player", "Sync Oxide Player", sub =>
+            {
+                sub.AddOption(CommandOptionType.String, "player", "Player to Sync", options => options.Required().AutoComplete());
+            });
         }
         
         public void AddUserSyncCommand(ApplicationCommandBuilder builder)
         {
-            builder.AddSubCommand("user", "Sync Discord User")
-            .AddOption(CommandOptionType.User, "user", "User to Sync",
-            options => options.Required());
+            builder.AddSubCommand("user", "Sync Discord User", sub =>
+            {
+                sub.AddOption(CommandOptionType.User, "user", "User to Sync",
+                options => options.Required());
+            });
         }
         
         [DiscordApplicationCommand("roles", "player")]
@@ -195,6 +193,7 @@ namespace Oxide.Plugins
             }
             
             SubscribeAll();
+            RegisterTemplates();
             RegisterCommands();
         }
         
@@ -347,7 +346,7 @@ namespace Oxide.Plugins
             }
             
             _processQueue.RemoveAll(p => p.MemberId == userId && !p.IsLeaving);
-            QueueSync(new PlayerSyncRequest(player, member, syncEvent));
+            QueueSync(new PlayerSyncRequest(player, user.Id, syncEvent, false));
         }
         #endregion
 
@@ -461,14 +460,14 @@ namespace Oxide.Plugins
         
         private void OnUserGroupAdded(string id, string group)
         {
-            IPlayer player = players.FindPlayerById(id);
+            IPlayer player = ServerPlayerCache.Instance.GetPlayerById(id);
             Logger.Debug($"{nameof(OnUserGroupAdded)} Added Player: {{0}}({{1}}) to be processed because added to group {{2}}", player.Name, player.Id, group);
             ProcessChange(player, SyncEvent.ServerGroupChanged);
         }
         
         private void OnUserGroupRemoved(string id, string group)
         {
-            IPlayer player = players.FindPlayerById(id);
+            IPlayer player = ServerPlayerCache.Instance.GetPlayerById(id);
             Logger.Debug($"{nameof(OnUserGroupRemoved)} Added Player: {{0}}({{1}}) to be processed because removed from group {{2}}", player.Name, player.Id, group);
             ProcessChange(player, SyncEvent.ServerGroupChanged);
         }
@@ -480,15 +479,9 @@ namespace Oxide.Plugins
                 return;
             }
             
-            GuildMember member = _link.GetLinkedMember(player, Guild);
-            if (member == null)
-            {
-                Logger.Debug("Skipping processing {0}. Player does not have a valid Discord id.", player.Id);
-                return;
-            }
-            
+            Snowflake userId = _link.GetDiscordId(player);
             _processQueue.RemoveAll(p => p.Player.Id == player.Id && !p.IsLeaving);
-            QueueSync(new PlayerSyncRequest(player, member, syncEvent));
+            QueueSync(new PlayerSyncRequest(player, userId, syncEvent, false));
         }
         
         public void ProcessLeaving(string playerId, Snowflake discordId, SyncEvent syncEvent)
@@ -534,14 +527,11 @@ namespace Oxide.Plugins
         
         public void SubscribeDiscordAll()
         {
-            if (Client.Bot != null)
-            {
-                Subscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
-                Subscribe(nameof(OnDiscordGuildMemberRoleAdded));
-                Subscribe(nameof(OnDiscordGuildMemberRoleRemoved));
-                Subscribe(nameof(OnDiscordGuildMemberAdded));
-                Subscribe(nameof(OnDiscordGuildMemberRemoved));
-            }
+            Subscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
+            Subscribe(nameof(OnDiscordGuildMemberRoleAdded));
+            Subscribe(nameof(OnDiscordGuildMemberRoleRemoved));
+            Subscribe(nameof(OnDiscordGuildMemberAdded));
+            Subscribe(nameof(OnDiscordGuildMemberRemoved));
         }
         
         public void UnsubscribeOxideAll()
@@ -562,20 +552,19 @@ namespace Oxide.Plugins
         
         public void UnsubscribeDiscordAll()
         {
-            if (Client?.Bot != null)
-            {
-                Unsubscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
-                Unsubscribe(nameof(OnDiscordGuildMemberRoleAdded));
-                Unsubscribe(nameof(OnDiscordGuildMemberRoleRemoved));
-                Unsubscribe(nameof(OnDiscordGuildMemberAdded));
-                Unsubscribe(nameof(OnDiscordGuildMemberRemoved));
-            }
+            Unsubscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
+            Unsubscribe(nameof(OnDiscordGuildMemberRoleAdded));
+            Unsubscribe(nameof(OnDiscordGuildMemberRoleRemoved));
+            Unsubscribe(nameof(OnDiscordGuildMemberAdded));
+            Unsubscribe(nameof(OnDiscordGuildMemberRemoved));
         }
         #endregion
 
         #region Plugins\DiscordRoles.Lang.cs
         public void RegisterLang()
         {
+            HashSet<string> server = new();
+            HashSet<string> player = new();
             Dictionary<string, string> loc = new()
             {
                 [LangKeys.Chat] = $"[#BEBEBE][[{AccentColor}]{Title}[/#]] {{0}}[/#]",
@@ -585,18 +574,36 @@ namespace Oxide.Plugins
             for (int index = 0; index < _config.SyncSettings.Count; index++)
             {
                 SyncSettings settings = _config.SyncSettings[index];
-                settings.ServerNotifications.AddLocalizations(loc);
-                settings.PlayerNotifications.AddLocalizations(loc);
+                HandleServerRegistration(settings.ServerNotifications, loc, server);
+                HandlePlayerRegistration(settings.PlayerNotifications, loc, player);
             }
             
             for (int index = 0; index < _config.PriorityGroupSettings.Count; index++)
             {
                 PriorityGroupSettings group = _config.PriorityGroupSettings[index];
-                group.ServerNotifications.AddLocalizations(loc);
-                group.PlayerNotifications.AddLocalizations(loc);
+                HandleServerRegistration(group.ServerNotifications, loc, server);
+                HandlePlayerRegistration(group.PlayerNotifications, loc, player);
             }
             
             lang.RegisterMessages(loc, this);
+        }
+        
+        public void HandleServerRegistration(ServerNotificationSettings server, Dictionary<string, string> loc, HashSet<string> registered)
+        {
+            server.Initialize();
+            if (registered.Add(server.LocalizationKey))
+            {
+                server.AddLocalizations(loc);
+            }
+        }
+        
+        public void HandlePlayerRegistration(PlayerNotificationSettings player, Dictionary<string, string> loc, HashSet<string> registered)
+        {
+            player.Initialize();
+            if (registered.Add(player.LocalizationKey))
+            {
+                player.AddLocalizations(loc);
+            }
         }
         
         public void Chat(string message)
@@ -639,22 +646,20 @@ namespace Oxide.Plugins
         #region Plugins\DiscordRoles.Notifications.cs
         public void SendSyncNotification(PlayerSyncRequest request, BaseSyncSettings sync, INotificationSettings settings, NotificationType type)
         {
-            using (PlaceholderData data = GetDefault(request.Player, request.Member?.User ?? EntityCache<DiscordUser>.Instance.Get(request.MemberId), sync))
+            using PlaceholderData data = GetDefault(request.Player, request.Member?.User ?? EntityCache<DiscordUser>.Instance.Get(request.MemberId), sync);
+            data.ManualPool();
+            if (settings.ServerNotifications.CanSendNotification(type))
             {
-                data.ManualPool();
-                if (settings.ServerNotifications.CanSendNotification(type))
+                SendServerMessage(settings.ServerNotifications, data, type);
+                SendDiscordMessage(settings.ServerNotifications, data, type);
+            }
+            
+            if (settings.PlayerNotifications.CanSendNotification(type))
+            {
+                SendPlayerMessage(request.Player, settings.PlayerNotifications, data, type);
+                if (!request.IsLeaving)
                 {
-                    SendServerMessage(settings.ServerNotifications, data, type);
-                    SendDiscordMessage(settings.ServerNotifications, data, type);
-                }
-                
-                if (settings.PlayerNotifications.CanSendNotification(type))
-                {
-                    SendPlayerMessage(request.Player, settings.PlayerNotifications, data, type);
-                    if (!request.IsLeaving)
-                    {
-                        SendDiscordPmMessage(request.Player, settings.PlayerNotifications, data, type);
-                    }
+                    SendDiscordPmMessage(request.Player, settings.PlayerNotifications, data, type);
                 }
             }
         }
@@ -729,17 +734,7 @@ namespace Oxide.Plugins
             foreach (KeyValuePair<PlayerId, Snowflake> link in links)
             {
                 IPlayer player = link.Key.Player;
-                if (player == null)
-                {
-                    continue;
-                }
-                
-                GuildMember member = Guild.GetMember(link.Value, true);
-                if (member != null)
-                {
-                    QueueSync(new PlayerSyncRequest(player, member, SyncEvent.PluginLoaded));
-                }
-                else
+                if (player != null)
                 {
                     QueueSync(new PlayerSyncRequest(player, link.Value, SyncEvent.PluginLoaded, false));
                 }
@@ -831,32 +826,32 @@ namespace Oxide.Plugins
             
             if (request.IsLeaving)
             {
-                Logger.Debug( "Skipping Nickname Sync: Member is leaving.");
+                Logger.Debug("Skipping Nickname Sync: Member is leaving.");
                 return;
             }
             
             if (request.Member.User.Id == Guild.OwnerId)
             {
-                Logger.Debug( "Skipping Nickname Sync: Member is Discord Server Owner.");
+                Logger.Debug("Skipping Nickname Sync: Member is Discord Server Owner.");
                 return;
             }
             
             string playerName = GetPlayerName(request.Player);
             if (playerName.Equals(request.Member.Nickname, StringComparison.Ordinal))
             {
-                Logger.Debug( "Skipping Nickname Sync: Member Nickname matches '{0}' expected value", playerName);
+                Logger.Debug("Skipping Nickname Sync: Member Nickname matches '{0}' expected value", playerName);
                 return;
             }
             
-            Logger.Debug( "Updating {0}'s Discord Nickname {1} -> {2}", request.PlayerName, request.Member.DisplayName, playerName);
+            Logger.Debug("Updating {0}'s Discord Nickname {1} -> {2}", request.PlayerName, request.Member.DisplayName, playerName);
             
             string oldNickname = request.Member.Nickname;
             Guild.EditMemberNick(Client, request.Member.User.Id, playerName).Then(member =>
             {
-                Logger.Info( "Successfully updated {0}'s Discord Nickname {1} -> {2}. Discord nickname now has the value: {3}", request.PlayerName, oldNickname, playerName, member.Nickname);
+                Logger.Info("Successfully updated {0}'s Discord Nickname {1} -> {2}. Discord nickname now has the value: {3}", request.PlayerName, oldNickname, playerName, member.Nickname);
             }).Catch<ResponseError>(error =>
             {
-                Logger.Error( "An error has occured updating {0}'s discord server nickname to {1}", request.Member.DisplayName, playerName);
+                Logger.Error("An error has occured updating {0}'s discord server nickname to {1}", request.Member.DisplayName, playerName);
             });
         }
         #endregion
@@ -973,18 +968,18 @@ namespace Oxide.Plugins
         #region Plugins\DiscordRoles.Templates.cs
         public void RegisterTemplates()
         {
-            DiscordMessageTemplate queued = CreatePrefixedTemplateEmbed("Player: {player.name}({player.id}) User: {user.mention} has been queued to be synced.", DiscordColor.Success.ToHex());
+            DiscordMessageTemplate queued = CreatePrefixedTemplateEmbed($"Player: {DefaultKeys.Player.Name}({DefaultKeys.Player.Id}) User: {DefaultKeys.User.Mention} has been queued to be synced.", DiscordColor.Success);
             Templates.RegisterLocalizedTemplateAsync(this, TemplateKeys.Commands.Player.Queued, queued, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             Templates.RegisterLocalizedTemplateAsync(this, TemplateKeys.Commands.User.Queued, queued, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             
-            DiscordMessageTemplate playerNotLinked = CreatePrefixedTemplateEmbed("Player: {player.name}({player.id}) is not linked and cannot be queued to be synced", DiscordColor.Danger.ToHex());
+            DiscordMessageTemplate playerNotLinked = CreatePrefixedTemplateEmbed($"Player: {DefaultKeys.Player.Name}({DefaultKeys.Player.Id}) is not linked and cannot be queued to be synced", DiscordColor.Danger);
             Templates.RegisterLocalizedTemplateAsync(this, TemplateKeys.Commands.Player.Errors.NotLinked, playerNotLinked, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             
-            DiscordMessageTemplate userNotLinked = CreatePrefixedTemplateEmbed("User: {user.mention} is not linked and cannot be queued to be synced", DiscordColor.Danger.ToHex());
+            DiscordMessageTemplate userNotLinked = CreatePrefixedTemplateEmbed($"User: {DefaultKeys.User.Mention} is not linked and cannot be queued to be synced", DiscordColor.Danger);
             Templates.RegisterLocalizedTemplateAsync(this, TemplateKeys.Commands.User.Errors.NotLinked, userNotLinked, new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
         }
         
-        public DiscordMessageTemplate CreatePrefixedTemplateEmbed(string description, string color)
+        public DiscordMessageTemplate CreatePrefixedTemplateEmbed(string description, DiscordColor color)
         {
             return new DiscordMessageTemplate
             {
@@ -992,8 +987,8 @@ namespace Oxide.Plugins
                 {
                     new()
                     {
-                        Description = $"[{{plugin.title}}] {description}",
-                        Color = $"#{color}"
+                        Description = $"[{DefaultKeys.Plugin.Title}] {description}",
+                        Color = color.ToHex()
                     }
                 }
             };
@@ -1194,6 +1189,14 @@ namespace Oxide.Plugins
             [DefaultValue(false)]
             [JsonProperty(PropertyName = "Use AntiSpam On Discord Nickname")]
             public bool UseAntiSpam { get; set; }
+            
+            public NicknameSettings(NicknameSettings settings)
+            {
+                SyncNicknames = settings?.SyncNicknames ?? false;
+                TimeBetweenNicknameSync = settings?.TimeBetweenNicknameSync ?? 5f;
+                SyncClanTag = settings?.SyncClanTag ?? false;
+                UseAntiSpam = settings?.UseAntiSpam ?? false;
+            }
         }
         #endregion
 
@@ -1207,7 +1210,7 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Discord Server ID (Optional if bot only in 1 guild)")]
             public Snowflake GuildId { get; set; }
             
-            [DefaultValue(2f)]
+            [DefaultValue(2.5f)]
             [JsonProperty(PropertyName = "Time between processing players (Seconds)")]
             public float UpdateRate { get; set; }
             
@@ -1223,8 +1226,10 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Priority Group Settings")]
             public List<PriorityGroupSettings> PriorityGroupSettings { get; set; }
             
+            [JsonProperty(PropertyName = "Nickname Sync Settings")]
             public NicknameSettings Nickname { get; set; }
             
+            [JsonProperty(PropertyName = "Plugin Log Settings")]
             public LogSettings LogSettings { get; set; }
             
             [JsonConverter(typeof(StringEnumConverter))]
@@ -1342,8 +1347,7 @@ namespace Oxide.Plugins
             
             public void OnGroupRemoved(string group)
             {
-                int count = _removedGroupCount[group];
-                count += 1;
+                int count = _removedGroupCount[group] + 1;
                 _removedGroupCount[group] = count;
                 if (count > _settings.GroupConflictLimit)
                 {
@@ -1353,8 +1357,7 @@ namespace Oxide.Plugins
             
             public void OnRoleRemoved(Snowflake role)
             {
-                int count = _removedRoleCount[role];
-                count += 1;
+                int count = _removedRoleCount[role] + 1;
                 _removedRoleCount[role] = count;
                 if (count > _settings.RoleConflictLimit)
                 {
@@ -1478,14 +1481,14 @@ namespace Oxide.Plugins
             {
                 if (request.IsLeaving)
                 {
-                    Plugin.Logger.Debug("Skipping Skipping Bidirectional Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
+                    Plugin.Logger.Debug($"${nameof(BidirectionalSyncHandler)} Skipping Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
                     return false;
                 }
                 
                 return true;
             }
             
-            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Bidirectional Sync: [{0}] Sync for {1} Is Leaving: {2}", _syncName, request.PlayerName, request.IsLeaving);
+            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(BidirectionalSyncHandler)} Processing Sync: [{{0}}] Sync for {{1}} Is Leaving: {{2}}", _syncName, request.PlayerName, request.IsLeaving);
             protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request) => _settings;
             protected override bool IsInGroup(PlayerSyncRequest request, BaseSyncSettings sync) => request.HasGroup(sync.GroupName);
             protected override bool IsInRole(PlayerSyncRequest request, BaseSyncSettings sync) => request.HasRole(sync.RoleId);
@@ -1498,14 +1501,11 @@ namespace Oxide.Plugins
                 
                 if (Plugin.Logger.IsLogging(DiscordLogLevel.Debug))
                 {
-                    string playerName = request.PlayerName;
-                    Plugin.Logger.Debug("{0} Skipping Bidirectional Sync: {1} -> {2} Reason: {3}", playerName, _settings.GroupName, _settings.Role.Name, isInGroup ? "Already Synced" : "Not in group");
-                    
+                    Plugin.Logger.Debug($"{nameof(BidirectionalSyncHandler)} {{0}} Skipping Sync: {{1}} -> {{2}} Reason: {{3}}", request.PlayerName, _settings.GroupName, _settings.Role.Name, isInGroup ? "Already Synced" : "Not in group");
                     if (!isInGroup)
                     {
-                        Plugin.Logger.Debug("{0} is in the following Groups: {1} Roles: {2}", playerName, request.PlayerGroups, request.PlayerRoles);
+                        Plugin.Logger.Debug($"{nameof(BidirectionalSyncHandler)} {{0}} is in the following Groups: {{1}} Roles: {{2}}", request.PlayerName, request.PlayerGroups, request.PlayerRoles);
                     }
-                    
                 }
                 
                 return false;
@@ -1551,20 +1551,20 @@ namespace Oxide.Plugins
             {
                 if (request.IsLeaving)
                 {
-                    Plugin.Logger.Debug("Skipping Skipping Bidirectional Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
+                    Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Skipping Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
                     return false;
                 }
                 
                 if (!Plugin._config.EventSettings.IsDiscordEnabled(request.Event))
                 {
-                    Plugin.Logger.Debug("Skipping server sync for event {0}", request.Event);
+                    Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Skipping sync for event {{0}}", request.Event);
                     return false;
                 }
                 
                 return true;
             }
             
-            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Discord Sync: [{0}] -> {1} Sync for {2} Is Leaving: {3}", _roleNameList, _group, request.PlayerName, request.IsLeaving);
+            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Processing Sync: [{{0}}] -> {{1}} Sync for {{2}} Is Leaving: {{3}}", _roleNameList, _group, request.PlayerName, request.IsLeaving);
             
             protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request)
             {
@@ -1596,12 +1596,10 @@ namespace Oxide.Plugins
                 
                 if (Plugin.Logger.IsLogging(DiscordLogLevel.Debug))
                 {
-                    string playerName = request.PlayerName;
-                    Plugin.Logger.Debug("{0} Skipping Discord Sync: [{1}] -> {2} {3}", playerName, _roleNameList, _group, isInRole ? "Already Synced" : "Not in role");
-                    
+                    Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} {{0}} Skipping Sync: [{{1}}] -> {{2}} {{3}}", request.PlayerName, _roleNameList, _group, isInRole ? "Already Synced" : "Not in role");
                     if (!isInGroup)
                     {
-                        Plugin.Logger.Debug("{0} has the following roles ({1})", playerName, request.PlayerRoles);
+                        Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} {{0}} has the following roles ({{1}})", request.PlayerName, request.PlayerRoles);
                     }
                 }
                 
@@ -1615,7 +1613,7 @@ namespace Oxide.Plugins
                     SyncSettings sync = _syncs[index];
                     if (sync.RemoveMode == RemoveMode.Keep && request.HasRole(sync.RoleId))
                     {
-                        Plugin.Logger.Debug("Skipped Removing {0} from Server Group '{1}' because {2} -> {1} Remove Mode is {3}", request.PlayerName, _group, sync.Role.Name, sync.RemoveMode);
+                        Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Skipped Removing {{0}} from Server Group '{{1}}' because {{2}} -> {{1}} Remove Mode is {nameof(RemoveMode.Keep)}", request.PlayerName, _group, sync.Role.Name, sync.RemoveMode);
                         return false;
                     }
                 }
@@ -1657,13 +1655,13 @@ namespace Oxide.Plugins
             {
                 if (_group.SyncMode == SyncMode.Server && request.IsLeaving)
                 {
-                    Plugin.Logger.Debug("Skipping Skipping Priority Sync for Sync Mode: {0}. Member Is Leaving Discord Server", _group.SyncMode);
+                    Plugin.Logger.Debug($"{nameof(PrioritySyncHandler)} Skipping Sync for Sync Mode: {{0}}. Member Is Leaving Discord Server", _group.SyncMode);
                     return false;
                 }
                 
                 return true;
             }
-            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Priority Sync: [{0}] Sync for {1} Is Leaving: {2}", _syncName, request.PlayerName, request.IsLeaving);
+            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(PrioritySyncHandler)} Processing Sync: [{{0}}] Sync for {{1}} Is Leaving: {{2}}", _syncName, request.PlayerName, request.IsLeaving);
             
             protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request)
             {
@@ -1671,13 +1669,11 @@ namespace Oxide.Plugins
                 for (int index = 0; index < _syncs.Count; index++)
                 {
                     PrioritySyncSettings settings = _syncs[index];
-                    if ((mode == SyncMode.Bidirectional || mode == SyncMode.Server) && request.HasGroup(settings.GroupName))
+                    switch (mode)
                     {
+                        case SyncMode.Bidirectional or SyncMode.Server when request.HasGroup(settings.GroupName):
                         return settings;
-                    }
-                    
-                    if ((mode == SyncMode.Bidirectional || mode == SyncMode.Discord) && request.HasRole(settings.RoleId))
-                    {
+                        case SyncMode.Bidirectional or SyncMode.Discord when request.HasRole(settings.RoleId):
                         return settings;
                     }
                 }
@@ -1766,7 +1762,7 @@ namespace Oxide.Plugins
             }
             
             protected override bool CanProcess(PlayerSyncRequest request) => !request.IsLeaving && Plugin._config.EventSettings.IsServerEnabled(request.Event);
-            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Server Sync: [{0}] -> {1} Sync for {2} Is Leaving: {3}", _groupNames, _role.Name, request.PlayerName, request.IsLeaving);
+            protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} Processing Sync: [{{0}}] -> {{1}} Sync for {{2}} Is Leaving: {{3}}", _groupNames, _role.Name, request.PlayerName, request.IsLeaving);
             protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request)
             {
                 for (int index = 0; index < _syncs.Count; index++)
@@ -1791,12 +1787,10 @@ namespace Oxide.Plugins
                 
                 if (Plugin.Logger.IsLogging(DiscordLogLevel.Debug))
                 {
-                    string playerName = request.PlayerName;
-                    Plugin.Logger.Debug("{0} Skipping Server Sync: [{1}] -> {2} Reason: {3}", playerName, _groupNames, _role.Name, isInGroup ? "Already Synced" : "Not in group");
-                    
+                    Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} {{0}} Skipping Server Sync: [{{1}}] -> {{2}} Reason: {{3}}", request.PlayerName, _groupNames, _role.Name, isInGroup ? "Already Synced" : "Not in group");
                     if (!isInGroup)
                     {
-                        Plugin.Logger.Debug("{0} is in the following Groups: {1}", playerName, request.PlayerGroups);
+                        Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} {{0}} is in the following Groups: {{1}}", request.PlayerName, request.PlayerGroups);
                     }
                 }
                 
@@ -1810,7 +1804,7 @@ namespace Oxide.Plugins
                     SyncSettings sync = _syncs[index];
                     if (sync.RemoveMode == RemoveMode.Keep && request.HasGroup(sync.GroupName))
                     {
-                        Plugin.Logger.Debug("Skipped Removing {0} from Discord Role '{1}' because RemoveIfNotInSource is false", request.PlayerName, sync.Role.Name);
+                        Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} Skipped Removing {{0}} from Discord Role '{{1}}' because Remove Move is {nameof(RemoveMode.Keep)}", request.PlayerName, sync.Role.Name);
                         return false;
                     }
                 }
@@ -1934,28 +1928,22 @@ namespace Oxide.Plugins
             
             private readonly List<Snowflake> _roles = new();
             private readonly List<string> _groups = new();
-            private readonly Permission _permission = Interface.Oxide.GetLibrary<Permission>();
+            private static readonly Permission Permission = Interface.Oxide.GetLibrary<Permission>();
             private readonly DiscordRoles _plugin = DiscordRoles.Instance;
             private readonly RecentSyncData _recentSync;
             
             public PlayerSyncRequest(IPlayer player, Snowflake memberId, SyncEvent sync, bool isLeaving)
             {
-                Player = player;
+                Player = player ?? throw new ArgumentNullException(nameof(player));
+                _groups.AddRange(Permission.GetUserGroups(player.Id));
                 MemberId = memberId;
                 Event = sync;
                 IsLeaving = isLeaving;
-                SetMember(_plugin.Guild.GetMember(MemberId, true));
                 _recentSync = _plugin.GetRecentSync(player.Id);
             }
             
-            public PlayerSyncRequest(IPlayer player, GuildMember member, SyncEvent sync) : this(player, member.Id, sync, member.HasLeftGuild)
-            {
-                Member = member;
-                SetMember(Member);
-            }
-            
             public string PlayerName => _playerName ??= $"Player: {Player.Name}({Player.Id}) User: {Member?.User.FullUserName}({MemberId})";
-            public string PlayerGroups => _playerGroups ??= _playerGroups = string.Join(", ", _groups);
+            public string PlayerGroups => _playerGroups ??= string.Join(", ", _groups);
             public string PlayerRoles => _playerRoles ??= string.Join(", ", _roles.Select(r => DiscordRoles.Instance.Guild.Roles[r]?.Name ?? $"Unknown Role ({r})"));
             public bool HasGroup(string group) => _groups.Contains(group, StringComparer.InvariantCultureIgnoreCase);
             public bool HasRole(Snowflake roleId) => !IsLeaving && (_roles.Contains(roleId) || _plugin.Guild.Id == roleId);
@@ -1977,7 +1965,7 @@ namespace Oxide.Plugins
                 playerData?.OnGroupAdded(group);
                 
                 _plugin.Logger.Info("Adding Player {0} to Server Group '{1}'", PlayerName, group);
-                _permission.AddUserGroup(Player.Id, group);
+                Permission.AddUserGroup(Player.Id, group);
                 _groups.Add(group);
                 _playerGroups = null;
             }
@@ -1992,7 +1980,7 @@ namespace Oxide.Plugins
                 }
                 
                 _plugin.Logger.Info("Removing player {0} from Server Group '{1}'", PlayerName, group);
-                _permission.RemoveUserGroup(Player.Id, group);
+                Permission.RemoveUserGroup(Player.Id, group);
                 _groups.Remove(group);
                 _playerGroups = null;
                 _recentSync.OnGroupRemoved(group);
@@ -2012,7 +2000,7 @@ namespace Oxide.Plugins
                     _plugin.Logger.Info("Successfully Added {0} to Discord Role {1}", playerName, role.Name);
                 }).Catch<ResponseError>(error =>
                 {
-                    if (error.DiscordError != null && error.DiscordError.Code == 50013)
+                    if (error.DiscordError is { Code: 50013 })
                     {
                         _plugin.Logger.Error("An error has occured adding {0} to Discord Role {1}. The Discord Bot {2} does not have permission to add Discord Role {3}.", playerName, role.Name, _plugin.Client.Bot.BotUser.FullUserName, role.Name);
                     }
@@ -2041,9 +2029,10 @@ namespace Oxide.Plugins
                     _recentSync.OnRoleRemoved(role.Id);
                 }).Catch<ResponseError>(error =>
                 {
-                    if (error.DiscordError != null && error.DiscordError.Code == 50013)
+                    if (error.DiscordError is { Code: 50013 })
                     {
                         _plugin.Logger.Error("An error has occured removing {0} from Discord Role {1}. The Discord Bot {2} does not have permission to remove Discord role {3}.", playerName, role.Name, _plugin.Client.Bot.BotUser.FullUserName, role.Name);
+                        error.SuppressErrorMessage();
                     }
                     else
                     {
@@ -2087,28 +2076,28 @@ namespace Oxide.Plugins
             public string LocalizationKey { get; set; }
             
             [JsonIgnore]
-            public string GroupAddedKey { get; set; }
+            protected string GroupAddedKey { get; set; }
             
             [JsonIgnore]
-            public string GroupRemoveKey { get; set; }
+            protected string GroupRemoveKey { get; set; }
             
             [JsonIgnore]
-            public string RoleAddedKey { get; set; }
+            protected string RoleAddedKey { get; set; }
             
             [JsonIgnore]
-            public string RoleRemoveKey { get; set; }
+            protected string RoleRemoveKey { get; set; }
             
             [JsonIgnore]
-            public TemplateKey GroupAddedTemplate { get; set; }
+            protected TemplateKey GroupAddedTemplate { get; set; }
             
             [JsonIgnore]
-            public TemplateKey GroupRemoveTemplate { get; set; }
+            protected TemplateKey GroupRemoveTemplate { get; set; }
             
             [JsonIgnore]
-            public TemplateKey RoleAddedTemplate { get; set; }
+            protected TemplateKey RoleAddedTemplate { get; set; }
             
             [JsonIgnore]
-            public TemplateKey RoleRemoveTemplate { get; set; }
+            protected TemplateKey RoleRemoveTemplate { get; set; }
             
             protected BaseNotifications() { }
             
@@ -2160,6 +2149,7 @@ namespace Oxide.Plugins
                 };
             }
             
+            public abstract void Initialize();
             public abstract void AddLocalizations(Dictionary<string, string> loc);
         }
         #endregion
@@ -2182,7 +2172,7 @@ namespace Oxide.Plugins
                 SendDiscordPm = settings?.SendDiscordPm ?? false;
             }
             
-            public override void AddLocalizations(Dictionary<string, string> loc)
+            public override void Initialize()
             {
                 GroupAddedKey = LocalizationKey + LangKeys.Player.GroupAdded;
                 GroupRemoveKey = LocalizationKey + LangKeys.Player.GroupRemoved;
@@ -2193,17 +2183,20 @@ namespace Oxide.Plugins
                 GroupRemoveTemplate = new TemplateKey(GroupRemoveKey);
                 RoleAddedTemplate = new TemplateKey(RoleAddedKey);
                 RoleRemoveTemplate = new TemplateKey(RoleRemoveKey);
-                
+            }
+            
+            public override void AddLocalizations(Dictionary<string, string> loc)
+            {
                 loc[GroupAddedKey] = $"You have been added to group {PlaceholderKeys.Group}";
                 loc[GroupRemoveKey] =  $"You have been removed from group {PlaceholderKeys.Group}";
                 loc[RoleAddedKey] = $"You have been added to Discord Role {DefaultKeys.Role.Name}";
                 loc[RoleRemoveKey] = $"You have been removed from Discord Role {DefaultKeys.Role.Name}";
                 
                 DiscordMessageTemplates templates = DiscordRoles.Instance.Templates;
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterLocalizedTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             }
         }
         #endregion
@@ -2226,29 +2219,31 @@ namespace Oxide.Plugins
                 DiscordMessageChannelId = settings?.DiscordMessageChannelId ?? default(Snowflake);
             }
             
-            public override void AddLocalizations(Dictionary<string, string> loc)
+            public override void Initialize()
             {
                 GroupAddedKey = LocalizationKey + LangKeys.Announcements.GroupAdded;
                 GroupRemoveKey = LocalizationKey + LangKeys.Announcements.GroupRemoved;
                 RoleAddedKey = LocalizationKey + LangKeys.Announcements.RoleAdded;
                 RoleRemoveKey = LocalizationKey + LangKeys.Announcements.RoleRemoved;
                 
-                
                 GroupAddedTemplate = new TemplateKey(GroupAddedKey);
                 GroupRemoveTemplate = new TemplateKey(GroupRemoveKey);
                 RoleAddedTemplate = new TemplateKey(RoleAddedKey);
                 RoleRemoveTemplate = new TemplateKey(RoleRemoveKey);
-                
-                loc[GroupAddedKey] = "{player.name} has been added to server group {group.name}";
-                loc[GroupRemoveKey] = "{player.name} has been removed to server group {group.name}";
-                loc[RoleAddedKey] = "{player.name} has been added to discord role {role.name}";
-                loc[RoleRemoveKey] = "{player.name} has been removed to discord role {role.name}";
+            }
+            
+            public override void AddLocalizations(Dictionary<string, string> loc)
+            {
+                loc[GroupAddedKey] = $"{DefaultKeys.Player.Name} has been added to server group {PlaceholderKeys.Group}";
+                loc[GroupRemoveKey] = $"{DefaultKeys.Player.Name} has been removed from server group {PlaceholderKeys.Group}";
+                loc[RoleAddedKey] = $"{DefaultKeys.Player.Name} has been added to discord role {PlaceholderKeys.Group}";
+                loc[RoleRemoveKey] = $"{DefaultKeys.Player.Name} has been removed from discord role {PlaceholderKeys.Group}";
                 
                 DiscordMessageTemplates templates = DiscordRoles.Instance.Templates;
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
-                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger.ToHex()), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupAddedKey], DiscordColor.Success), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, GroupRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[GroupRemoveKey], DiscordColor.Danger), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleAddedTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleAddedKey], DiscordColor.Success), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
+                templates.RegisterGlobalTemplateAsync(DiscordRoles.Instance, RoleRemoveTemplate, DiscordRoles.Instance.CreatePrefixedTemplateEmbed(loc[RoleRemoveKey], DiscordColor.Danger), new TemplateVersion(1, 0, 0), new TemplateVersion(1, 0, 0));
             }
         }
         #endregion
@@ -2357,6 +2352,7 @@ namespace Oxide.Plugins
             [JsonProperty(PropertyName = "Sync Mode (Server, Discord, Bidirectional)", Order = 1)]
             public SyncMode SyncMode { get; set; }
             
+            [JsonConverter(typeof(StringEnumConverter))]
             [JsonProperty(PropertyName = "Sync Remove Mode (Remove, Keep)", Order = 2)]
             public RemoveMode RemoveMode { get; set; }
             

@@ -17,7 +17,7 @@ public class PluginConfig
     [JsonProperty(PropertyName = "Discord Server ID (Optional if bot only in 1 guild)")]
     public Snowflake GuildId { get; set; }
         
-    [DefaultValue(2f)]
+    [DefaultValue(2.5f)]
     [JsonProperty(PropertyName = "Time between processing players (Seconds)")]
     public float UpdateRate { get; set; }
             
@@ -33,8 +33,10 @@ public class PluginConfig
     [JsonProperty(PropertyName = "Priority Group Settings")]
     public List<PriorityGroupSettings> PriorityGroupSettings { get; set; }
 
+    [JsonProperty(PropertyName = "Nickname Sync Settings")]
     public NicknameSettings Nickname { get; set; }
         
+    [JsonProperty(PropertyName = "Plugin Log Settings")]
     public LogSettings LogSettings { get; set; }
 
     [JsonConverter(typeof(StringEnumConverter))]

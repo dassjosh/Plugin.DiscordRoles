@@ -23,17 +23,7 @@ public partial class DiscordRoles
         foreach (KeyValuePair<PlayerId, Snowflake> link in links)
         {
             IPlayer player = link.Key.Player;
-            if (player == null)
-            {
-                continue;
-            }
-                
-            GuildMember member = Guild.GetMember(link.Value, true);
-            if (member != null)
-            {
-                QueueSync(new PlayerSyncRequest(player, member, SyncEvent.PluginLoaded));
-            }
-            else
+            if (player != null)
             {
                 QueueSync(new PlayerSyncRequest(player, link.Value, SyncEvent.PluginLoaded, false));
             }
@@ -125,32 +115,32 @@ public partial class DiscordRoles
 
         if (request.IsLeaving)
         {
-            Logger.Debug( "Skipping Nickname Sync: Member is leaving.");
+            Logger.Debug("Skipping Nickname Sync: Member is leaving.");
             return;
         }
             
         if (request.Member.User.Id == Guild.OwnerId)
         {
-            Logger.Debug( "Skipping Nickname Sync: Member is Discord Server Owner.");
+            Logger.Debug("Skipping Nickname Sync: Member is Discord Server Owner.");
             return;
         }
 
         string playerName = GetPlayerName(request.Player);
         if (playerName.Equals(request.Member.Nickname, StringComparison.Ordinal))
         {
-            Logger.Debug( "Skipping Nickname Sync: Member Nickname matches '{0}' expected value", playerName);
+            Logger.Debug("Skipping Nickname Sync: Member Nickname matches '{0}' expected value", playerName);
             return;
         }
             
-        Logger.Debug( "Updating {0}'s Discord Nickname {1} -> {2}", request.PlayerName, request.Member.DisplayName, playerName);
+        Logger.Debug("Updating {0}'s Discord Nickname {1} -> {2}", request.PlayerName, request.Member.DisplayName, playerName);
 
         string oldNickname = request.Member.Nickname;
         Guild.EditMemberNick(Client, request.Member.User.Id, playerName).Then(member =>
         {
-            Logger.Info( "Successfully updated {0}'s Discord Nickname {1} -> {2}. Discord nickname now has the value: {3}", request.PlayerName, oldNickname, playerName, member.Nickname);
+            Logger.Info("Successfully updated {0}'s Discord Nickname {1} -> {2}. Discord nickname now has the value: {3}", request.PlayerName, oldNickname, playerName, member.Nickname);
         }).Catch<ResponseError>(error =>
         {
-            Logger.Error( "An error has occured updating {0}'s discord server nickname to {1}", request.Member.DisplayName, playerName);
+            Logger.Error("An error has occured updating {0}'s discord server nickname to {1}.\n{2}", request.Member.DisplayName, playerName);
         });
     }
 }

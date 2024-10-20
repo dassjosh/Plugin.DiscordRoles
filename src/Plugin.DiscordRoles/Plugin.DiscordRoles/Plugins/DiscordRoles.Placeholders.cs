@@ -1,5 +1,4 @@
-﻿using System.Text;
-using DiscordRolesPlugin.Configuration.SyncConfig;
+﻿using DiscordRolesPlugin.Configuration.SyncConfig;
 using DiscordRolesPlugin.Placeholders;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Ext.Discord.Entities;

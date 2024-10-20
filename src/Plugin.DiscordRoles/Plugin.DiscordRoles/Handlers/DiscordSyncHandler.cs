@@ -26,20 +26,20 @@ public class DiscordSyncHandler : BaseHandler
     {
         if (request.IsLeaving)
         {
-            Plugin.Logger.Debug("Skipping Skipping Bidirectional Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
+            Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Skipping Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
             return false;
         }
 
         if (!Plugin._config.EventSettings.IsDiscordEnabled(request.Event))
         {
-            Plugin.Logger.Debug("Skipping server sync for event {0}", request.Event);
+            Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Skipping sync for event {{0}}", request.Event);
             return false;
         }
             
         return true;
     }
 
-    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Discord Sync: [{0}] -> {1} Sync for {2} Is Leaving: {3}", _roleNameList, _group, request.PlayerName, request.IsLeaving);
+    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Processing Sync: [{{0}}] -> {{1}} Sync for {{2}} Is Leaving: {{3}}", _roleNameList, _group, request.PlayerName, request.IsLeaving);
 
     protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request)
     {
@@ -71,12 +71,10 @@ public class DiscordSyncHandler : BaseHandler
 
         if (Plugin.Logger.IsLogging(DiscordLogLevel.Debug))
         {
-            string playerName = request.PlayerName;
-            Plugin.Logger.Debug("{0} Skipping Discord Sync: [{1}] -> {2} {3}", playerName, _roleNameList, _group, isInRole ? "Already Synced" : "Not in role");
-            
+            Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} {{0}} Skipping Sync: [{{1}}] -> {{2}} {{3}}", request.PlayerName, _roleNameList, _group, isInRole ? "Already Synced" : "Not in role");
             if (!isInGroup)
             {
-                Plugin.Logger.Debug("{0} has the following roles ({1})", playerName, request.PlayerRoles);
+                Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} {{0}} has the following roles ({{1}})", request.PlayerName, request.PlayerRoles);
             }
         }
             
@@ -90,7 +88,7 @@ public class DiscordSyncHandler : BaseHandler
             SyncSettings sync = _syncs[index];
             if (sync.RemoveMode == RemoveMode.Keep && request.HasRole(sync.RoleId))
             {
-                Plugin.Logger.Debug("Skipped Removing {0} from Server Group '{1}' because {2} -> {1} Remove Mode is {3}", request.PlayerName, _group, sync.Role.Name, sync.RemoveMode);
+                Plugin.Logger.Debug($"{nameof(DiscordSyncHandler)} Skipped Removing {{0}} from Server Group '{{1}}' because {{2}} -> {{1}} Remove Mode is {nameof(RemoveMode.Keep)}", request.PlayerName, _group, sync.Role.Name, sync.RemoveMode);
                 return false;
             }
         }

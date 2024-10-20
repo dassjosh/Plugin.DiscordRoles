@@ -21,14 +21,14 @@ public class BidirectionalSyncHandler : BaseHandler
     {
         if (request.IsLeaving)
         {
-            Plugin.Logger.Debug("Skipping Skipping Bidirectional Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
+            Plugin.Logger.Debug($"${nameof(BidirectionalSyncHandler)} Skipping Sync: Member Is Leaving Discord Server", request.PlayerName, request.IsLeaving);
             return false;
         }
 
         return true;
     }
 
-    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Bidirectional Sync: [{0}] Sync for {1} Is Leaving: {2}", _syncName, request.PlayerName, request.IsLeaving);
+    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(BidirectionalSyncHandler)} Processing Sync: [{{0}}] Sync for {{1}} Is Leaving: {{2}}", _syncName, request.PlayerName, request.IsLeaving);
     protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request) => _settings;
     protected override bool IsInGroup(PlayerSyncRequest request, BaseSyncSettings sync) => request.HasGroup(sync.GroupName);
     protected override bool IsInRole(PlayerSyncRequest request, BaseSyncSettings sync) => request.HasRole(sync.RoleId);
@@ -41,14 +41,11 @@ public class BidirectionalSyncHandler : BaseHandler
 
         if (Plugin.Logger.IsLogging(DiscordLogLevel.Debug))
         {
-            string playerName = request.PlayerName;
-            Plugin.Logger.Debug("{0} Skipping Bidirectional Sync: {1} -> {2} Reason: {3}", playerName, _settings.GroupName, _settings.Role.Name, isInGroup ? "Already Synced" : "Not in group");
-            
+            Plugin.Logger.Debug($"{nameof(BidirectionalSyncHandler)} {{0}} Skipping Sync: {{1}} -> {{2}} Reason: {{3}}", request.PlayerName, _settings.GroupName, _settings.Role.Name, isInGroup ? "Already Synced" : "Not in group");
             if (!isInGroup)
             {
-                Plugin.Logger.Debug("{0} is in the following Groups: {1} Roles: {2}", playerName, request.PlayerGroups, request.PlayerRoles);
+                Plugin.Logger.Debug($"{nameof(BidirectionalSyncHandler)} {{0}} is in the following Groups: {{1}} Roles: {{2}}", request.PlayerName, request.PlayerGroups, request.PlayerRoles);
             }
-
         }
             
         return false;

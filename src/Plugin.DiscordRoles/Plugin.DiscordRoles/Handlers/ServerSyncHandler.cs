@@ -23,7 +23,7 @@ public class ServerSyncHandler : BaseHandler
     }
 
     protected override bool CanProcess(PlayerSyncRequest request) => !request.IsLeaving && Plugin._config.EventSettings.IsServerEnabled(request.Event);
-    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Server Sync: [{0}] -> {1} Sync for {2} Is Leaving: {3}", _groupNames, _role.Name, request.PlayerName, request.IsLeaving);
+    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} Processing Sync: [{{0}}] -> {{1}} Sync for {{2}} Is Leaving: {{3}}", _groupNames, _role.Name, request.PlayerName, request.IsLeaving);
     protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request)
     {
         for (int index = 0; index < _syncs.Count; index++)
@@ -48,12 +48,10 @@ public class ServerSyncHandler : BaseHandler
 
         if (Plugin.Logger.IsLogging(DiscordLogLevel.Debug))
         {
-            string playerName = request.PlayerName;
-            Plugin.Logger.Debug("{0} Skipping Server Sync: [{1}] -> {2} Reason: {3}", playerName, _groupNames, _role.Name, isInGroup ? "Already Synced" : "Not in group");
-            
+            Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} {{0}} Skipping Server Sync: [{{1}}] -> {{2}} Reason: {{3}}", request.PlayerName, _groupNames, _role.Name, isInGroup ? "Already Synced" : "Not in group");
             if (!isInGroup)
             {
-                Plugin.Logger.Debug("{0} is in the following Groups: {1}", playerName, request.PlayerGroups);
+                Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} {{0}} is in the following Groups: {{1}}", request.PlayerName, request.PlayerGroups);
             }
         }
             
@@ -67,7 +65,7 @@ public class ServerSyncHandler : BaseHandler
             SyncSettings sync = _syncs[index];
             if (sync.RemoveMode == RemoveMode.Keep && request.HasGroup(sync.GroupName))
             {
-                Plugin.Logger.Debug("Skipped Removing {0} from Discord Role '{1}' because RemoveIfNotInSource is false", request.PlayerName, sync.Role.Name);
+                Plugin.Logger.Debug($"{nameof(ServerSyncHandler)} Skipped Removing {{0}} from Discord Role '{{1}}' because Remove Move is {nameof(RemoveMode.Keep)}", request.PlayerName, sync.Role.Name);
                 return false;
             }
         }

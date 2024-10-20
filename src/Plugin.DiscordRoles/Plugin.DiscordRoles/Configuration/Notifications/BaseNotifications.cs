@@ -18,28 +18,28 @@ public abstract class BaseNotifications
     public string LocalizationKey { get; set; }
 
     [JsonIgnore]
-    public string GroupAddedKey { get; set; }
+    protected string GroupAddedKey { get; set; }
         
     [JsonIgnore]
-    public string GroupRemoveKey { get; set; }
+    protected string GroupRemoveKey { get; set; }
         
     [JsonIgnore]
-    public string RoleAddedKey { get; set; }
+    protected string RoleAddedKey { get; set; }
         
     [JsonIgnore]
-    public string RoleRemoveKey { get; set; }
+    protected string RoleRemoveKey { get; set; }
         
     [JsonIgnore]
-    public TemplateKey GroupAddedTemplate { get; set; }
+    protected TemplateKey GroupAddedTemplate { get; set; }
         
     [JsonIgnore]
-    public TemplateKey GroupRemoveTemplate { get; set; }
+    protected TemplateKey GroupRemoveTemplate { get; set; }
         
     [JsonIgnore]
-    public TemplateKey RoleAddedTemplate { get; set; }
+    protected TemplateKey RoleAddedTemplate { get; set; }
         
     [JsonIgnore]
-    public TemplateKey RoleRemoveTemplate { get; set; }
+    protected TemplateKey RoleRemoveTemplate { get; set; }
 
     protected BaseNotifications() { }
         
@@ -91,5 +91,6 @@ public abstract class BaseNotifications
         };
     }
 
+    public abstract void Initialize();
     public abstract void AddLocalizations(Dictionary<string, string> loc);
 }

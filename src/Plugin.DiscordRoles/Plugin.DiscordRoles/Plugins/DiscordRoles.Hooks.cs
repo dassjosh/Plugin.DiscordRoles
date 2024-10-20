@@ -1,6 +1,7 @@
 ﻿using DiscordRolesPlugin.Enums;
 using DiscordRolesPlugin.Sync;
 using Oxide.Core.Libraries.Covalence;
+using Oxide.Ext.Discord.Cache;
 using Oxide.Ext.Discord.Entities;
 using Oxide.Ext.Discord.Logging;
 
@@ -16,14 +17,14 @@ public partial class DiscordRoles
 
     private void OnUserGroupAdded(string id, string group)
     {
-        IPlayer player = players.FindPlayerById(id);
+        IPlayer player = ServerPlayerCache.Instance.GetPlayerById(id);
         Logger.Debug($"{nameof(OnUserGroupAdded)} Added Player: {{0}}({{1}}) to be processed because added to group {{2}}", player.Name, player.Id, group);
         ProcessChange(player, SyncEvent.ServerGroupChanged);
     }
 
     private void OnUserGroupRemoved(string id, string group)
     {
-        IPlayer player = players.FindPlayerById(id);
+        IPlayer player = ServerPlayerCache.Instance.GetPlayerById(id);
         Logger.Debug($"{nameof(OnUserGroupRemoved)} Added Player: {{0}}({{1}}) to be processed because removed from group {{2}}", player.Name, player.Id, group);
         ProcessChange(player, SyncEvent.ServerGroupChanged);
     }
@@ -35,15 +36,9 @@ public partial class DiscordRoles
             return;
         }
 
-        GuildMember member = _link.GetLinkedMember(player, Guild);
-        if (member == null)
-        {
-            Logger.Debug("Skipping processing {0}. Player does not have a valid Discord id.", player.Id);
-            return;
-        }
-            
+        Snowflake userId = _link.GetDiscordId(player);
         _processQueue.RemoveAll(p => p.Player.Id == player.Id && !p.IsLeaving);
-        QueueSync(new PlayerSyncRequest(player, member, syncEvent));
+        QueueSync(new PlayerSyncRequest(player, userId, syncEvent, false));
     }
 
     public void ProcessLeaving(string playerId, Snowflake discordId, SyncEvent syncEvent)

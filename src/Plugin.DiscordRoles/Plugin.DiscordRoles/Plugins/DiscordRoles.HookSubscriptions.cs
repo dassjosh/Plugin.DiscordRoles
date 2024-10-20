@@ -32,14 +32,11 @@ public partial class DiscordRoles
 
     public void SubscribeDiscordAll()
     {
-        if (Client.Bot != null)
-        {
-            Subscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
-            Subscribe(nameof(OnDiscordGuildMemberRoleAdded));
-            Subscribe(nameof(OnDiscordGuildMemberRoleRemoved));
-            Subscribe(nameof(OnDiscordGuildMemberAdded));
-            Subscribe(nameof(OnDiscordGuildMemberRemoved));
-        }
+        Subscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
+        Subscribe(nameof(OnDiscordGuildMemberRoleAdded));
+        Subscribe(nameof(OnDiscordGuildMemberRoleRemoved));
+        Subscribe(nameof(OnDiscordGuildMemberAdded));
+        Subscribe(nameof(OnDiscordGuildMemberRemoved));
     }
         
     public void UnsubscribeOxideAll()
@@ -60,13 +57,10 @@ public partial class DiscordRoles
 
     public void UnsubscribeDiscordAll()
     {
-        if (Client?.Bot != null)
-        {
-            Unsubscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
-            Unsubscribe(nameof(OnDiscordGuildMemberRoleAdded));
-            Unsubscribe(nameof(OnDiscordGuildMemberRoleRemoved));
-            Unsubscribe(nameof(OnDiscordGuildMemberAdded));
-            Unsubscribe(nameof(OnDiscordGuildMemberRemoved));
-        }
+        Unsubscribe(nameof(OnDiscordGuildMemberNicknameUpdated));
+        Unsubscribe(nameof(OnDiscordGuildMemberRoleAdded));
+        Unsubscribe(nameof(OnDiscordGuildMemberRoleRemoved));
+        Unsubscribe(nameof(OnDiscordGuildMemberAdded));
+        Unsubscribe(nameof(OnDiscordGuildMemberRemoved));
     }
 }

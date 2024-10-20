@@ -25,13 +25,13 @@ public class PrioritySyncHandler : BaseHandler
     {
         if (_group.SyncMode == SyncMode.Server && request.IsLeaving)
         {
-            Plugin.Logger.Debug("Skipping Skipping Priority Sync for Sync Mode: {0}. Member Is Leaving Discord Server", _group.SyncMode);
+            Plugin.Logger.Debug($"{nameof(PrioritySyncHandler)} Skipping Sync for Sync Mode: {{0}}. Member Is Leaving Discord Server", _group.SyncMode);
             return false;
         }
 
         return true;
     }
-    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug("Processing Priority Sync: [{0}] Sync for {1} Is Leaving: {2}", _syncName, request.PlayerName, request.IsLeaving);
+    protected override void LogProcessStart(PlayerSyncRequest request) => Plugin.Logger.Debug($"{nameof(PrioritySyncHandler)} Processing Sync: [{{0}}] Sync for {{1}} Is Leaving: {{2}}", _syncName, request.PlayerName, request.IsLeaving);
 
     protected override BaseSyncSettings GetMatchingSync(PlayerSyncRequest request)
     {
@@ -39,14 +39,12 @@ public class PrioritySyncHandler : BaseHandler
         for (int index = 0; index < _syncs.Count; index++)
         {
             PrioritySyncSettings settings = _syncs[index];
-            if ((mode == SyncMode.Bidirectional || mode == SyncMode.Server) && request.HasGroup(settings.GroupName))
+            switch (mode)
             {
-                return settings;
-            }
-                
-            if ((mode == SyncMode.Bidirectional || mode == SyncMode.Discord) && request.HasRole(settings.RoleId))
-            {
-                return settings;
+                case SyncMode.Bidirectional or SyncMode.Server when request.HasGroup(settings.GroupName):
+                    return settings;
+                case SyncMode.Bidirectional or SyncMode.Discord when request.HasRole(settings.RoleId):
+                    return settings;
             }
         }
 

@@ -20,4 +20,12 @@ public class NicknameSettings
     [DefaultValue(false)]
     [JsonProperty(PropertyName = "Use AntiSpam On Discord Nickname")]
     public bool UseAntiSpam { get; set; }
+
+    public NicknameSettings(NicknameSettings settings)
+    {
+        SyncNicknames = settings?.SyncNicknames ?? false;
+        TimeBetweenNicknameSync = settings?.TimeBetweenNicknameSync ?? 5f;
+        SyncClanTag = settings?.SyncClanTag ?? false;
+        UseAntiSpam = settings?.UseAntiSpam ?? false;
+    }
 }

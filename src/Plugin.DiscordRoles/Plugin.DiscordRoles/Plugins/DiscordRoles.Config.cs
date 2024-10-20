@@ -3,7 +3,6 @@ using DiscordRolesPlugin.Configuration;
 using DiscordRolesPlugin.Configuration.SyncConfig;
 using DiscordRolesPlugin.Enums;
 using Newtonsoft.Json;
-using Oxide.Ext.Discord.Entities;
 
 namespace DiscordRolesPlugin.Plugins;
 
@@ -38,6 +37,8 @@ public partial class DiscordRoles
         {
             new(null)
         };
+
+        config.Nickname = new NicknameSettings(config.Nickname);
             
         for (int index = 0; index < config.SyncSettings.Count; index++)
         {
