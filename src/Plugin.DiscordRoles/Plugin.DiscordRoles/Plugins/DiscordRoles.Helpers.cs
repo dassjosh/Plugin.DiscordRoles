@@ -11,7 +11,7 @@ public partial class DiscordRoles
     public string GetPlayerName(IPlayer player)
     {
         string playerName = player.Name;
-        if (_config.Nickname.UseAntiSpam && AntiSpam != null && AntiSpam.IsLoaded)
+        if (_config.Nickname.UseAntiSpam && AntiSpam is { IsLoaded: true })
         {
             playerName = AntiSpam.Call<string>("GetClearName", player);
             if (string.IsNullOrEmpty(playerName))
@@ -25,9 +25,9 @@ public partial class DiscordRoles
             }
         }
             
-        if (_config.Nickname.SyncClanTag && Clans != null && Clans.IsLoaded)
+        if (_config.Nickname.SyncClanTag && Clans is { IsLoaded: true })
         {
-            string tag = Clans?.Call<string>("GetClanOf", player.Id);
+            string tag = Clans.Call<string>("GetClanOf", player.Id);
             if (!string.IsNullOrEmpty(tag))
             {
                 playerName = Lang(LangKeys.ClanTag, player, tag, playerName);

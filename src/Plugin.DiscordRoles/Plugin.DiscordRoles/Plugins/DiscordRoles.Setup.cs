@@ -26,10 +26,18 @@ public partial class DiscordRoles
             return;
         }
             
-        if (_config.Nickname.UseAntiSpam && AntiSpam == null)
+        if (_config.Nickname.UseAntiSpam)
         {
-            PrintWarning("AntiSpam is enabled in the config but is not loaded. " +
-                         "Please disable the setting in the config or load AntiSpam: https://umod.org/plugins/anti-spam");
+            if (AntiSpam is not { IsLoaded: true })
+            {
+                PrintWarning("AntiSpam is enabled in the config but is not loaded. " +
+                             "Please disable the setting in the config or load AntiSpam: https://umod.org/plugins/anti-spam");
+            }
+            else if (AntiSpam.Version < new VersionNumber(2, 1, 3))
+            {
+                PrintWarning("AntiSpam requires version >= 2.1.3. " +
+                             "Please update the plugin @ https://umod.org/plugins/anti-spam");
+            }
         }
 
         RegisterPlaceholders();

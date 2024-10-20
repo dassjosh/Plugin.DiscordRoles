@@ -391,7 +391,7 @@ namespace Oxide.Plugins
         public string GetPlayerName(IPlayer player)
         {
             string playerName = player.Name;
-            if (_config.Nickname.UseAntiSpam && AntiSpam != null && AntiSpam.IsLoaded)
+            if (_config.Nickname.UseAntiSpam && AntiSpam is { IsLoaded: true })
             {
                 playerName = AntiSpam.Call<string>("GetClearName", player);
                 if (string.IsNullOrEmpty(playerName))
@@ -405,9 +405,9 @@ namespace Oxide.Plugins
                 }
             }
             
-            if (_config.Nickname.SyncClanTag && Clans != null && Clans.IsLoaded)
+            if (_config.Nickname.SyncClanTag && Clans is { IsLoaded: true })
             {
-                string tag = Clans?.Call<string>("GetClanOf", player.Id);
+                string tag = Clans.Call<string>("GetClanOf", player.Id);
                 if (!string.IsNullOrEmpty(tag))
                 {
                     playerName = Lang(LangKeys.ClanTag, player, tag, playerName);
@@ -851,7 +851,7 @@ namespace Oxide.Plugins
                 Logger.Info("Successfully updated {0}'s Discord Nickname {1} -> {2}. Discord nickname now has the value: {3}", request.PlayerName, oldNickname, playerName, member.Nickname);
             }).Catch<ResponseError>(error =>
             {
-                Logger.Error("An error has occured updating {0}'s discord server nickname to {1}", request.Member.DisplayName, playerName);
+                Logger.Error("An error has occured updating {0}'s discord server nickname to {1}.\n{2}", request.Member.DisplayName, playerName);
             });
         }
         #endregion
@@ -860,6 +860,7 @@ namespace Oxide.Plugins
         private void Init()
         {
             Instance = this;
+            Puts($"{_config.LogSettings.PluginLogLevel} - {JsonConvert.SerializeObject(_config.LogSettings)}");
             Logger = DiscordLoggerFactory.Instance.CreateLogger(this, _config.LogSettings.PluginLogLevel, _config.LogSettings);
             Data = Interface.Oxide.DataFileSystem.ReadObject<PluginData>(Name);
             _processNextCallback = ProcessNextStartupId;
@@ -875,10 +876,18 @@ namespace Oxide.Plugins
                 return;
             }
             
-            if (_config.Nickname.UseAntiSpam && AntiSpam == null)
+            if (_config.Nickname.UseAntiSpam)
             {
-                PrintWarning("AntiSpam is enabled in the config but is not loaded. " +
-                "Please disable the setting in the config or load AntiSpam: https://umod.org/plugins/anti-spam");
+                if (AntiSpam is not { IsLoaded: true })
+                {
+                    PrintWarning("AntiSpam is enabled in the config but is not loaded. " +
+                    "Please disable the setting in the config or load AntiSpam: https://umod.org/plugins/anti-spam");
+                }
+                else if (AntiSpam.Version < new VersionNumber(2, 1, 3))
+                {
+                    PrintWarning("AntiSpam requires version >= 2.1.3. " +
+                    "Please update the plugin @ https://umod.org/plugins/anti-spam");
+                }
             }
             
             RegisterPlaceholders();
