@@ -13,7 +13,6 @@ public partial class DiscordRoles
         Instance = this;
         Logger = DiscordLoggerFactory.Instance.CreateLogger(this, _config.LogSettings.PluginLogLevel, _config.LogSettings);
         Data = Interface.Oxide.DataFileSystem.ReadObject<PluginData>(Name);
-        _processNextCallback = ProcessNextStartupId;
         UnsubscribeAll();
         RegisterLang();
     }

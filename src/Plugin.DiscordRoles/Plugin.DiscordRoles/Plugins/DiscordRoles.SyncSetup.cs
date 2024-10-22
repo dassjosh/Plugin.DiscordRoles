@@ -54,21 +54,21 @@ public partial class DiscordRoles
         
     public void RegisterSyncs()
     {
-        _syncHandlers.AddRange(_config.SyncSettings
+        SyncHandlers.AddRange(_config.SyncSettings
             .Where(s => s.SyncMode == SyncMode.Bidirectional)
             .Select(s => new BidirectionalSyncHandler(s)));
 
-        _syncHandlers.AddRange(_config.SyncSettings
+        SyncHandlers.AddRange(_config.SyncSettings
             .Where(s => s.SyncMode == SyncMode.Server)
             .GroupBy(s => s.RoleId)
             .Select(s => new ServerSyncHandler(s.ToList())));
 
-        _syncHandlers.AddRange(_config.SyncSettings
+        SyncHandlers.AddRange(_config.SyncSettings
             .Where(s => s.SyncMode == SyncMode.Discord)
             .GroupBy(s => s.GroupName)
             .Select(s => new DiscordSyncHandler(s.Key, s.ToList())));
 
-        _syncHandlers.AddRange(_config.PriorityGroupSettings
+        SyncHandlers.AddRange(_config.PriorityGroupSettings
             .Select(p => new PrioritySyncHandler(p)));
     }
 }

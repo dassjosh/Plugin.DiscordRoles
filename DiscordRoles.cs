@@ -7,6 +7,7 @@ using Oxide.Core.Plugins;
 using Oxide.Ext.Discord.Attributes;
 using Oxide.Ext.Discord.Builders;
 using Oxide.Ext.Discord.Cache;
+using Oxide.Ext.Discord.Callbacks;
 using Oxide.Ext.Discord.Clients;
 using Oxide.Ext.Discord.Connections;
 using Oxide.Ext.Discord.Constants;
@@ -15,17 +16,20 @@ using Oxide.Ext.Discord.Extensions;
 using Oxide.Ext.Discord.Interfaces;
 using Oxide.Ext.Discord.Libraries;
 using Oxide.Ext.Discord.Logging;
+using Oxide.Ext.Discord.Types;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+
+using Random = Oxide.Core.Random;
 
 //DiscordRoles created with PluginMerge v(1.0.9.0) by MJSU @ https://github.com/dassjosh/Plugin.Merge
 namespace Oxide.Plugins
 {
     [Info("Discord Roles", "MJSU", "3.0.0")]
     [Description("Syncs players oxide group with discord roles")]
-    public partial class DiscordRoles : CovalencePlugin, IDiscordPlugin
+    public partial class DiscordRoles : CovalencePlugin, IDiscordPlugin, IDiscordPool
     {
         #region Plugins\DiscordRoles.Commands.cs
         [Command("dcr.forcecheck")]
@@ -231,9 +235,9 @@ namespace Oxide.Plugins
                 Logger.Warning("Discord Role '{0}' has a role position of {1} which is higher than the highest bot role {2} with position {3}. The bot will not be able to grant this role until this is fixed.", role.Name, role.Position, botMaxRole.Name, botMaxRole.Position);
             }
             
-            if (!_processRoles.Contains(data.RoleId))
+            if (!ProcessRoles.Contains(data.RoleId))
             {
-                _processRoles.Add(data.RoleId);
+                ProcessRoles.Add(data.RoleId);
             }
             
             return true;
@@ -310,7 +314,7 @@ namespace Oxide.Plugins
         [HookMethod(DiscordExtHooks.OnDiscordGuildMemberRoleAdded)]
         private void OnDiscordGuildMemberRoleAdded(GuildMember member, Snowflake roleId, DiscordGuild guild)
         {
-            if (_processRoles.Contains(roleId))
+            if (ProcessRoles.Contains(roleId))
             {
                 Logger.Debug($"{nameof(OnDiscordGuildMemberRemoved)} Added {{0}}({{1}}) to be processed because {{2}} role added.", member.User.FullUserName, member.Id, guild.Roles[roleId]?.Name ?? "Unknown Role");
                 HandleDiscordChange(member, SyncEvent.DiscordRoleChanged);
@@ -320,7 +324,7 @@ namespace Oxide.Plugins
         [HookMethod(DiscordExtHooks.OnDiscordGuildMemberRoleRemoved)]
         private void OnDiscordGuildMemberRoleRemoved(GuildMember member, Snowflake roleId, DiscordGuild guild)
         {
-            if (_processRoles.Contains(roleId))
+            if (ProcessRoles.Contains(roleId))
             {
                 Logger.Debug($"{nameof(OnDiscordGuildMemberRemoved)} Added {{0}}({{1}}) to be processed because {{2}} role removed.", member.User.FullUserName, member.Id, guild.Roles[roleId]?.Name ?? "Unknown Role");
                 HandleDiscordChange(member, SyncEvent.DiscordRoleChanged);
@@ -345,14 +349,15 @@ namespace Oxide.Plugins
                 return;
             }
             
-            _processQueue.RemoveAll(p => p.MemberId == userId && !p.IsLeaving);
-            QueueSync(new PlayerSyncRequest(player, user.Id, syncEvent, false));
+            ProcessQueue.RemoveAll(p => p.MemberId == userId && !p.IsLeaving);
+            QueueSync(new PlayerSyncRequest(player, member, syncEvent, false));
         }
         #endregion
 
         #region Plugins\DiscordRoles.Fields.cs
         // ReSharper disable once UnassignedField.Global
         public DiscordClient Client { get; set; }
+        public DiscordPluginPool Pool { get; set; }
         
         [PluginReference]
         #pragma warning disable CS0649
@@ -366,8 +371,6 @@ namespace Oxide.Plugins
         
         public DiscordGuild Guild;
         
-        private Timer _syncTimer;
-        
         private const string AccentColor = "#de8732";
         
         private readonly DiscordLink _link = GetLibrary<DiscordLink>();
@@ -377,12 +380,10 @@ namespace Oxide.Plugins
         
         public ILogger Logger;
         
-        private readonly List<BaseHandler> _syncHandlers = new();
-        private readonly List<Snowflake> _processRoles = new();
-        private readonly List<PlayerSyncRequest> _processQueue = new();
-        private readonly Hash<string, RecentSyncData> _recentSync = new();
-        
-        private Action _processNextCallback;
+        public readonly List<BaseHandler> SyncHandlers = new();
+        public readonly List<Snowflake> ProcessRoles = new();
+        public readonly List<PlayerSyncRequest> ProcessQueue = new();
+        public readonly Hash<string, RecentSyncData> RecentSync = new();
         
         public static DiscordRoles Instance;
         #endregion
@@ -424,11 +425,11 @@ namespace Oxide.Plugins
         
         public RecentSyncData GetRecentSync(string playerId)
         {
-            RecentSyncData data = _recentSync[playerId];
+            RecentSyncData data = RecentSync[playerId];
             if (data == null)
             {
                 data = new RecentSyncData(_config.ConflictSettings, playerId);
-                _recentSync[playerId] = data;
+                RecentSync[playerId] = data;
             }
             
             return data;
@@ -480,13 +481,13 @@ namespace Oxide.Plugins
             }
             
             Snowflake userId = _link.GetDiscordId(player);
-            _processQueue.RemoveAll(p => p.Player.Id == player.Id && !p.IsLeaving);
+            ProcessQueue.RemoveAll(p => p.Player.Id == player.Id && !p.IsLeaving);
             QueueSync(new PlayerSyncRequest(player, userId, syncEvent, false));
         }
         
         public void ProcessLeaving(string playerId, Snowflake discordId, SyncEvent syncEvent)
         {
-            _processQueue.RemoveAll(p => p.Player.Id == playerId);
+            ProcessQueue.RemoveAll(p => p.Player.Id == playerId);
             
             IPlayer player = players.FindPlayerById(playerId);
             if (player != null && discordId.IsValid())
@@ -723,6 +724,8 @@ namespace Oxide.Plugins
         #endregion
 
         #region Plugins\DiscordRoles.Processing.cs
+        private bool _isReadyForProcessing;
+        
         public void CheckLinkedPlayers()
         {
             if (!IsDiscordLinkEnabled())
@@ -730,8 +733,8 @@ namespace Oxide.Plugins
                 return;
             }
             
-            IReadOnlyDictionary<PlayerId, Snowflake> links = _link.PlayerToDiscordIds;
-            foreach (KeyValuePair<PlayerId, Snowflake> link in links)
+            var link = _link.PlayerToDiscordIds.FirstOrDefault();
+            for (int i = 0; i < 100; i++)
             {
                 IPlayer player = link.Key.Player;
                 if (player != null)
@@ -740,7 +743,19 @@ namespace Oxide.Plugins
                 }
             }
             
-            Logger.Info("Starting sync for {0} linked players", _processQueue.Count);
+            // IReadOnlyDictionary<PlayerId, Snowflake> links = _link.PlayerToDiscordIds;
+            // foreach (KeyValuePair<PlayerId, Snowflake> link in links)
+            // {
+                //     IPlayer player = link.Key.Player;
+                //     if (player != null)
+                //     {
+                    //         QueueSync(new PlayerSyncRequest(player, link.Value, SyncEvent.PluginLoaded, false));
+                //     }
+            // }
+            
+            Logger.Info("Starting sync for {0} linked players", ProcessQueue.Count);
+            ProcessNextSync();
+            _isReadyForProcessing = true;
         }
         
         private bool IsDiscordLinkEnabled()
@@ -761,53 +776,44 @@ namespace Oxide.Plugins
                 return;
             }
             
-            if (_processQueue.Count <= 3)
+            if (!sync.MemberId.IsValid())
             {
-                _processQueue.Add(sync);
+                Logger.Debug("Skipping Sync: MemberId is invalid. Player ID: {0}({1})", sync.Player.Name, sync.Player.Id);
+                return;
+            }
+            
+            if (ProcessQueue.Count <= 3)
+            {
+                ProcessQueue.Add(sync);
+                if (_isReadyForProcessing && ProcessQueue.Count == 1)
+                {
+                    ProcessNextSync();
+                }
             }
             else
             {
-                _processQueue.Insert(3, sync);
-            }
-            
-            if (_syncTimer == null || _syncTimer.Destroyed)
-            {
-                _syncTimer = timer.Every(_config.UpdateRate, _processNextCallback);
+                ProcessQueue.Insert(3, sync);
             }
         }
         
-        public void ProcessNextStartupId()
+        public void ProcessNextSync()
         {
-            if (_processQueue.Count == 0)
+            if (ProcessQueue.Count == 0)
             {
-                _syncTimer?.Destroy();
-                _syncTimer = null;
                 return;
             }
             
-            PlayerSyncRequest request = _processQueue[0];
-            _processQueue.RemoveAt(0);
-            
-            ProcessUser(request);
+            PlayerSyncRequest request = ProcessQueue[0];
+            ProcessQueue.RemoveAt(0);
+            Promise promise = Promise.Create();
+            promise.Finally(ProcessNextSync);
+            ProcessUser(request, promise);
         }
         
-        public void ProcessUser(PlayerSyncRequest request)
+        public void ProcessUser(PlayerSyncRequest request, Promise promise)
         {
-            if (request.Member == null)
-            {
-                request.GetGuildMember();
-                return;
-            }
-            
-            Logger.Debug("Start processing: {0} Is Leaving: {1} Server Groups: {2} Discord Roles: {3}", request.PlayerName, request.IsLeaving, request.PlayerGroups, request. PlayerRoles);
-            
-            for (int index = 0; index < _syncHandlers.Count; index++)
-            {
-                BaseHandler handler = _syncHandlers[index];
-                handler.Process(request);
-            }
-            
-            HandleUserNick(request);
+            ProcessUserCallback callback = ProcessUserCallback.Create(request, this, promise);
+            request.GetGuildMember().Finally(callback.RunAction);
         }
         
         public void HandleUserNick(PlayerSyncRequest request)
@@ -860,10 +866,8 @@ namespace Oxide.Plugins
         private void Init()
         {
             Instance = this;
-            Puts($"{_config.LogSettings.PluginLogLevel} - {JsonConvert.SerializeObject(_config.LogSettings)}");
             Logger = DiscordLoggerFactory.Instance.CreateLogger(this, _config.LogSettings.PluginLogLevel, _config.LogSettings);
             Data = Interface.Oxide.DataFileSystem.ReadObject<PluginData>(Name);
-            _processNextCallback = ProcessNextStartupId;
             UnsubscribeAll();
             RegisterLang();
         }
@@ -955,21 +959,21 @@ namespace Oxide.Plugins
         
         public void RegisterSyncs()
         {
-            _syncHandlers.AddRange(_config.SyncSettings
+            SyncHandlers.AddRange(_config.SyncSettings
             .Where(s => s.SyncMode == SyncMode.Bidirectional)
             .Select(s => new BidirectionalSyncHandler(s)));
             
-            _syncHandlers.AddRange(_config.SyncSettings
+            SyncHandlers.AddRange(_config.SyncSettings
             .Where(s => s.SyncMode == SyncMode.Server)
             .GroupBy(s => s.RoleId)
             .Select(s => new ServerSyncHandler(s.ToList())));
             
-            _syncHandlers.AddRange(_config.SyncSettings
+            SyncHandlers.AddRange(_config.SyncSettings
             .Where(s => s.SyncMode == SyncMode.Discord)
             .GroupBy(s => s.GroupName)
             .Select(s => new DiscordSyncHandler(s.Key, s.ToList())));
             
-            _syncHandlers.AddRange(_config.PriorityGroupSettings
+            SyncHandlers.AddRange(_config.PriorityGroupSettings
             .Select(p => new PrioritySyncHandler(p)));
         }
         #endregion
@@ -1218,10 +1222,6 @@ namespace Oxide.Plugins
             
             [JsonProperty(PropertyName = "Discord Server ID (Optional if bot only in 1 guild)")]
             public Snowflake GuildId { get; set; }
-            
-            [DefaultValue(2.5f)]
-            [JsonProperty(PropertyName = "Time between processing players (Seconds)")]
-            public float UpdateRate { get; set; }
             
             [JsonProperty(PropertyName = "Action To Perform By Event")]
             public EventSettings EventSettings { get; set; }
@@ -1951,6 +1951,17 @@ namespace Oxide.Plugins
                 _recentSync = _plugin.GetRecentSync(player.Id);
             }
             
+            public PlayerSyncRequest(IPlayer player, GuildMember member, SyncEvent sync, bool isLeaving)
+            {
+                Player = player ?? throw new ArgumentNullException(nameof(player));
+                Member = member ?? throw new ArgumentException(nameof(member));
+                _groups.AddRange(Permission.GetUserGroups(player.Id));
+                MemberId = member.Id;
+                Event = sync;
+                IsLeaving = isLeaving;
+                _recentSync = _plugin.GetRecentSync(player.Id);
+            }
+            
             public string PlayerName => _playerName ??= $"Player: {Player.Name}({Player.Id}) User: {Member?.User.FullUserName}({MemberId})";
             public string PlayerGroups => _playerGroups ??= string.Join(", ", _groups);
             public string PlayerRoles => _playerRoles ??= string.Join(", ", _roles.Select(r => DiscordRoles.Instance.Guild.Roles[r]?.Name ?? $"Unknown Role ({r})"));
@@ -2050,24 +2061,85 @@ namespace Oxide.Plugins
                 });
             }
             
-            public void GetGuildMember()
+            public IPromise GetGuildMember()
             {
-                _plugin.Guild.GetMember(_plugin.Client, MemberId).Then(member =>
-                {
-                    SetMember(member);
-                    _plugin.ProcessUser(this);
-                }).Catch<ResponseError>(error =>
+                Snowflake id = Random.Range(0, 100) < 10 ? new Snowflake(1233ul) : MemberId;
+                
+                return _plugin.Guild.GetMember(_plugin.Client, id)
+                .Then(SetMember)
+                .Catch<ResponseError>(error =>
                 {
                     if (error.HttpStatusCode == DiscordHttpStatusCode.NotFound)
                     {
                         error.SuppressErrorMessage();
                         IsLeaving = true;
-                        _plugin.ProcessUser(this);
                         return;
                     }
                     
                     _plugin.Logger.Error("An error occured loading Guild Member For: {0}.\nCode:{1}\nMessage:{2}", PlayerName, error.HttpStatusCode, error.Message);
                 });
+            }
+        }
+        #endregion
+
+        #region Sync\ProcessUserCallback.cs
+        public class ProcessUserCallback : BaseCallback
+        {
+            private PlayerSyncRequest _request;
+            private DiscordRoles _plugin;
+            private Promise _promise;
+            
+            public readonly Action RunAction;
+            
+            public ProcessUserCallback()
+            {
+                RunAction = Run;
+            }
+            
+            public static ProcessUserCallback Create(PlayerSyncRequest request, DiscordRoles plugin, Promise promise)
+            {
+                ProcessUserCallback callback = plugin.Pool.Get<ProcessUserCallback>();
+                callback.Init(request, plugin, promise);
+                return callback;
+            }
+            
+            private void Init(PlayerSyncRequest request, DiscordRoles plugin, Promise promise)
+            {
+                _request = request;
+                _plugin = plugin;
+                _promise = promise;
+            }
+            
+            protected override void HandleCallback()
+            {
+                try
+                {
+                    if (_request.Member == null && !_request.IsLeaving)
+                    {
+                        _plugin.Logger.Debug("Skipping processing: {0}({1}) Failed to load Member with ID: {2}", _request.PlayerName, _request.Player.Id, _request.MemberId);
+                        return;
+                    }
+                    
+                    _plugin.Logger.Debug("Start processing: {0}({1}) Is Leaving: {2} Server Groups: {3} Discord Roles: {4}", _request.PlayerName, _request.Player.Id, _request.IsLeaving, _request.PlayerGroups, _request.PlayerRoles);
+                    
+                    List<BaseHandler> syncHandlers = _plugin.SyncHandlers;
+                    for (int index = 0; index < syncHandlers.Count; index++)
+                    {
+                        BaseHandler handler = syncHandlers[index];
+                        handler.Process(_request);
+                    }
+                    
+                    _plugin.HandleUserNick(_request);
+                    _plugin.Logger.Debug("Finish processing: {0}({1}) Is Leaving: {2} Server Groups: {3} Discord Roles: {4}", _request.PlayerName, _request.Player.Id, _request.IsLeaving, _request.PlayerGroups, _request.PlayerRoles);
+                }
+                catch (Exception ex)
+                {
+                    _plugin.Logger.Exception("An error occured processing sync for {0}.\n{1}", _request.PlayerName, ex);
+                }
+                finally
+                {
+                    _promise.Resolve();
+                }
             }
         }
         #endregion

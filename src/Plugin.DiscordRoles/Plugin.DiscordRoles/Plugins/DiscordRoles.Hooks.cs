@@ -37,13 +37,13 @@ public partial class DiscordRoles
         }
 
         Snowflake userId = _link.GetDiscordId(player);
-        _processQueue.RemoveAll(p => p.Player.Id == player.Id && !p.IsLeaving);
+        ProcessQueue.RemoveAll(p => p.Player.Id == player.Id && !p.IsLeaving);
         QueueSync(new PlayerSyncRequest(player, userId, syncEvent, false));
     }
 
     public void ProcessLeaving(string playerId, Snowflake discordId, SyncEvent syncEvent)
     {
-        _processQueue.RemoveAll(p => p.Player.Id == playerId);
+        ProcessQueue.RemoveAll(p => p.Player.Id == playerId);
 
         IPlayer player = players.FindPlayerById(playerId);
         if (player != null && discordId.IsValid())

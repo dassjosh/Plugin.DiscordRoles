@@ -8,7 +8,9 @@ using Oxide.Core;
 using Oxide.Core.Libraries;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Ext.Discord.Entities;
+using Oxide.Ext.Discord.Interfaces;
 using Oxide.Ext.Discord.Logging;
+using Random = Oxide.Core.Random;
 
 namespace DiscordRolesPlugin.Sync;
 
@@ -17,7 +19,7 @@ public class PlayerSyncRequest
     public readonly IPlayer Player;
     public readonly Snowflake MemberId;
     public readonly SyncEvent Event;
-        
+    
     public GuildMember Member { get; private set; }
     public bool IsLeaving { get; private set; }
         
@@ -36,6 +38,17 @@ public class PlayerSyncRequest
         Player = player ?? throw new ArgumentNullException(nameof(player));
         _groups.AddRange(Permission.GetUserGroups(player.Id));
         MemberId = memberId;
+        Event = sync;
+        IsLeaving = isLeaving;
+        _recentSync = _plugin.GetRecentSync(player.Id);
+    }
+    
+    public PlayerSyncRequest(IPlayer player, GuildMember member, SyncEvent sync, bool isLeaving)
+    {
+        Player = player ?? throw new ArgumentNullException(nameof(player));
+        Member = member ?? throw new ArgumentException(nameof(member));
+        _groups.AddRange(Permission.GetUserGroups(player.Id));
+        MemberId = member.Id;
         Event = sync;
         IsLeaving = isLeaving;
         _recentSync = _plugin.GetRecentSync(player.Id);
@@ -140,23 +153,22 @@ public class PlayerSyncRequest
         });
     }
 
-    public void GetGuildMember()
+    public IPromise GetGuildMember()
     {
-        _plugin.Guild.GetMember(_plugin.Client, MemberId).Then(member =>
-        {
-            SetMember(member);
-            _plugin.ProcessUser(this);
-        }).Catch<ResponseError>(error =>
-        {
-            if (error.HttpStatusCode == DiscordHttpStatusCode.NotFound)
+        Snowflake id = Random.Range(0, 100) < 10 ? new Snowflake(1233ul) : MemberId;
+        
+        return _plugin.Guild.GetMember(_plugin.Client, id)
+            .Then(SetMember)
+            .Catch<ResponseError>(error =>
             {
-                error.SuppressErrorMessage();
-                IsLeaving = true;
-                _plugin.ProcessUser(this);
-                return;
-            }
+                if (error.HttpStatusCode == DiscordHttpStatusCode.NotFound)
+                {
+                    error.SuppressErrorMessage();
+                    IsLeaving = true;
+                    return;
+                }
                 
-            _plugin.Logger.Error("An error occured loading Guild Member For: {0}.\nCode:{1}\nMessage:{2}", PlayerName, error.HttpStatusCode, error.Message);
-        });
+                _plugin.Logger.Error("An error occured loading Guild Member For: {0}.\nCode:{1}\nMessage:{2}", PlayerName, error.HttpStatusCode, error.Message);
+            });
     }
 }

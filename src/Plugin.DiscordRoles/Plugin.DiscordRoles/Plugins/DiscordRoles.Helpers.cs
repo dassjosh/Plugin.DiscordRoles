@@ -44,11 +44,11 @@ public partial class DiscordRoles
 
     public RecentSyncData GetRecentSync(string playerId)
     {
-        RecentSyncData data = _recentSync[playerId];
+        RecentSyncData data = RecentSync[playerId];
         if (data == null)
         {
             data = new RecentSyncData(_config.ConflictSettings, playerId);
-            _recentSync[playerId] = data;
+            RecentSync[playerId] = data;
         }
 
         return data;

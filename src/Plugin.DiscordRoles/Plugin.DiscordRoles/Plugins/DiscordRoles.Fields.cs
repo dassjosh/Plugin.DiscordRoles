@@ -9,6 +9,7 @@ using Oxide.Ext.Discord.Clients;
 using Oxide.Ext.Discord.Entities;
 using Oxide.Ext.Discord.Interfaces;
 using Oxide.Ext.Discord.Libraries;
+using Oxide.Ext.Discord.Types;
 using Oxide.Plugins;
 
 namespace DiscordRolesPlugin.Plugins;
@@ -17,6 +18,7 @@ public partial class DiscordRoles
 {
     // ReSharper disable once UnassignedField.Global
     public DiscordClient Client { get; set; }
+    public DiscordPluginPool Pool { get; set; }
         
     [PluginReference] 
 #pragma warning disable CS0649
@@ -29,8 +31,6 @@ public partial class DiscordRoles
     public PluginData Data;
         
     public DiscordGuild Guild;
-        
-    private Timer _syncTimer;
 
     private const string AccentColor = "#de8732";
 
@@ -41,12 +41,10 @@ public partial class DiscordRoles
 
     public ILogger Logger;
 
-    private readonly List<BaseHandler> _syncHandlers = new();
-    private readonly List<Snowflake> _processRoles = new();
-    private readonly List<PlayerSyncRequest> _processQueue = new();
-    private readonly Hash<string, RecentSyncData> _recentSync = new();
-
-    private Action _processNextCallback;
+    public readonly List<BaseHandler> SyncHandlers = new();
+    public readonly List<Snowflake> ProcessRoles = new();
+    public readonly List<PlayerSyncRequest> ProcessQueue = new();
+    public readonly Hash<string, RecentSyncData> RecentSync = new();
         
     public static DiscordRoles Instance;
 }

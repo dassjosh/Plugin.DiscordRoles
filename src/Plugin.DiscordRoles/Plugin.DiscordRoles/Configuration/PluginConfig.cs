@@ -16,10 +16,6 @@ public class PluginConfig
             
     [JsonProperty(PropertyName = "Discord Server ID (Optional if bot only in 1 guild)")]
     public Snowflake GuildId { get; set; }
-        
-    [DefaultValue(2.5f)]
-    [JsonProperty(PropertyName = "Time between processing players (Seconds)")]
-    public float UpdateRate { get; set; }
             
     [JsonProperty(PropertyName = "Action To Perform By Event")]
     public EventSettings EventSettings { get; set; }

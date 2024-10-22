@@ -86,9 +86,9 @@ public partial class DiscordRoles
             Logger.Warning("Discord Role '{0}' has a role position of {1} which is higher than the highest bot role {2} with position {3}. The bot will not be able to grant this role until this is fixed.", role.Name, role.Position, botMaxRole.Name, botMaxRole.Position);
         }
 
-        if (!_processRoles.Contains(data.RoleId))
+        if (!ProcessRoles.Contains(data.RoleId))
         {
-            _processRoles.Add(data.RoleId);
+            ProcessRoles.Add(data.RoleId);
         }
 
         return true;
@@ -165,7 +165,7 @@ public partial class DiscordRoles
     [HookMethod(DiscordExtHooks.OnDiscordGuildMemberRoleAdded)]
     private void OnDiscordGuildMemberRoleAdded(GuildMember member, Snowflake roleId, DiscordGuild guild)
     {
-        if (_processRoles.Contains(roleId))
+        if (ProcessRoles.Contains(roleId))
         {
             Logger.Debug($"{nameof(OnDiscordGuildMemberRemoved)} Added {{0}}({{1}}) to be processed because {{2}} role added.", member.User.FullUserName, member.Id, guild.Roles[roleId]?.Name ?? "Unknown Role");
             HandleDiscordChange(member, SyncEvent.DiscordRoleChanged);
@@ -175,7 +175,7 @@ public partial class DiscordRoles
     [HookMethod(DiscordExtHooks.OnDiscordGuildMemberRoleRemoved)]
     private void OnDiscordGuildMemberRoleRemoved(GuildMember member, Snowflake roleId, DiscordGuild guild)
     {
-        if (_processRoles.Contains(roleId))
+        if (ProcessRoles.Contains(roleId))
         {
             Logger.Debug($"{nameof(OnDiscordGuildMemberRemoved)} Added {{0}}({{1}}) to be processed because {{2}} role removed.", member.User.FullUserName, member.Id, guild.Roles[roleId]?.Name ?? "Unknown Role");
             HandleDiscordChange(member, SyncEvent.DiscordRoleChanged);
@@ -200,7 +200,7 @@ public partial class DiscordRoles
             return;
         }
             
-        _processQueue.RemoveAll(p => p.MemberId == userId && !p.IsLeaving);
-        QueueSync(new PlayerSyncRequest(player, user.Id, syncEvent, false));
+        ProcessQueue.RemoveAll(p => p.MemberId == userId && !p.IsLeaving);
+        QueueSync(new PlayerSyncRequest(player, member, syncEvent, false));
     }
 }

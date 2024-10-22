@@ -1,23 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using DiscordRolesPlugin.Enums;
 using DiscordRolesPlugin.Handlers;
 using DiscordRolesPlugin.Sync;
 using Oxide.Core.Libraries.Covalence;
+using Oxide.Ext.Discord.Callbacks;
 using Oxide.Ext.Discord.Entities;
 using Oxide.Ext.Discord.Libraries;
 using Oxide.Ext.Discord.Logging;
+using Oxide.Ext.Discord.Types;
 
 namespace DiscordRolesPlugin.Plugins;
 
 public partial class DiscordRoles
 {
+    private bool _isReadyForProcessing;
+    
     public void CheckLinkedPlayers()
     {
         if (!IsDiscordLinkEnabled())
         {
             return;
         }
+
+        // var link = _link.PlayerToDiscordIds.FirstOrDefault();
+        // for (int i = 0; i < 100; i++)
+        // {
+        //     IPlayer player = link.Key.Player;
+        //     if (player != null)
+        //     {
+        //         QueueSync(new PlayerSyncRequest(player, link.Value, SyncEvent.PluginLoaded, false));
+        //     }
+        // }
 
         IReadOnlyDictionary<PlayerId, Snowflake> links = _link.PlayerToDiscordIds;
         foreach (KeyValuePair<PlayerId, Snowflake> link in links)
@@ -29,7 +44,9 @@ public partial class DiscordRoles
             }
         }
 
-        Logger.Info("Starting sync for {0} linked players", _processQueue.Count);
+        Logger.Info("Starting sync for {0} linked players", ProcessQueue.Count);
+        ProcessNextSync();
+        _isReadyForProcessing = true;
     }
 
     private bool IsDiscordLinkEnabled()
@@ -49,54 +66,45 @@ public partial class DiscordRoles
         {
             return;
         }
-            
-        if (_processQueue.Count <= 3)
+
+        if (!sync.MemberId.IsValid())
         {
-            _processQueue.Add(sync);
+            Logger.Debug("Skipping Sync: MemberId is invalid. Player ID: {0}({1})", sync.Player.Name, sync.Player.Id);
+            return;
+        }
+            
+        if (ProcessQueue.Count <= 3)
+        {
+            ProcessQueue.Add(sync);
+            if (_isReadyForProcessing && ProcessQueue.Count == 1)
+            {
+                ProcessNextSync();
+            }
         }
         else
         {
-            _processQueue.Insert(3, sync);
-        }
-
-        if (_syncTimer == null || _syncTimer.Destroyed)
-        {
-            _syncTimer = timer.Every(_config.UpdateRate, _processNextCallback);
+            ProcessQueue.Insert(3, sync);
         }
     }
 
-    public void ProcessNextStartupId()
+    public void ProcessNextSync()
     {
-        if (_processQueue.Count == 0)
+        if (ProcessQueue.Count == 0)
         {
-            _syncTimer?.Destroy();
-            _syncTimer = null;
             return;
         }
-
-        PlayerSyncRequest request = _processQueue[0];
-        _processQueue.RemoveAt(0);
-
-        ProcessUser(request);
+        
+        PlayerSyncRequest request = ProcessQueue[0];
+        ProcessQueue.RemoveAt(0);
+        Promise promise = Promise.Create();
+        promise.Finally(ProcessNextSync);
+        ProcessUser(request, promise);
     }
         
-    public void ProcessUser(PlayerSyncRequest request)
+    public void ProcessUser(PlayerSyncRequest request, Promise promise)
     {
-        if (request.Member == null)
-        {
-            request.GetGuildMember();
-            return;
-        }
-            
-        Logger.Debug("Start processing: {0} Is Leaving: {1} Server Groups: {2} Discord Roles: {3}", request.PlayerName, request.IsLeaving, request.PlayerGroups, request. PlayerRoles);
-            
-        for (int index = 0; index < _syncHandlers.Count; index++)
-        {
-            BaseHandler handler = _syncHandlers[index];
-            handler.Process(request);
-        }
-
-        HandleUserNick(request);
+        ProcessUserCallback callback = ProcessUserCallback.Create(request, this, promise);
+        request.GetGuildMember().Finally(callback.RunAction);
     }
 
     public void HandleUserNick(PlayerSyncRequest request)
